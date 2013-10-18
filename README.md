@@ -1,14 +1,14 @@
 Computersystems 2013-2014 Project
 =================================
 
-Een project in Assembly voor het vak computerysystemen
+Een project in Assembly voor het vak computerysystemen. De quotering voor dit project telt mee voor het eindcijfer van dit vak.
 
-# 1. Goal
+## 1. Goal
 
 Design and write a working program in 8086 assembly language (MASM syntax), that runs inside the DOSBox environment.
 The project must be written in groups of two persons.
 
-# 2. Project Proposals
+## 2. Project Proposals
 
 Every group is allowed to choose what kind of program they will create, but this choice must be approved by Prof.
 Schelkens beforehand. Below is a list of examples of possible projects:
@@ -19,7 +19,7 @@ Schelkens beforehand. Below is a list of examples of possible projects:
     E.g. a small painting app with save as JPG or PNG..
     Please make groups and formulate a project at latest on October 25rd 2012 (earlier if possible). Email proposals
     and names to tim.bruylants@vub.ac.be and bob.andries@vub.ac.be.
-# 3. Deliverables
+## 3. Deliverables
 
 By the end of the semester, you will have to deliver the following:
 
@@ -33,7 +33,7 @@ By the end of the semester, you will have to deliver the following:
    Everything should be uploaded to the PointCarre dropbox before the Januari 6th 2014 as a single ZIP file (that
    contains everything).
 
-# 4. Evaluation
+## 4. Evaluation
 
  * Quality of the source code (i.e. clean, efficient, well documented code).
    1. Programming in assembly language is no excuse for producing unstructured spaghetti code. Use of functions
