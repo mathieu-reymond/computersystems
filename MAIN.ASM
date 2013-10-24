@@ -1,13 +1,21 @@
 ; ==============================================================================
-; Empty example assembly file.
+; Entry point of program
 ; ==============================================================================
 .MODEL small ; one data and one code segment, stack and data segment are grouped
 .STACK 1024  ; stack, 1024 bytes
-.DATA        ; data segment, static variables
 
-.CODE        ; code segment
+; --- INCLUDES -----------------------------------------------------------------
 
-; ----------------------------- CODE STARTS HERE -------------------------------
+include VIDEO.INC
+include RAND.INC
+include KEYB.INC
+
+; --- DATA SEGMENT -------------------------------------------------------------
+.DATA
+
+
+; --- CODE SEGMENT -------------------------------------------------------------
+.CODE
 main:
 
 	mov	ax, 4c00h	; exit to DOS
