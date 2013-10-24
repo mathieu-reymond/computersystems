@@ -1,0 +1,10 @@
+debug: MAIN.ASM
+	ML /Zi /W3 /WX MAIN.ASM /Fe MAIN_D.EXE
+release: MAIN.ASM
+	ML /W3 /WX MAIN.ASM /Fe MAIN.EXE
+clean:
+	del *.EXE
+	del *.OBJ
+	del *.BAK
+cv:
+	cv /s MAIN_D.EXE
