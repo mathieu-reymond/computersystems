@@ -1,4 +1,11 @@
+;==========================
+;Game functionality
+;==========================
+.MODEL small ; one data and one code segment, stack and data segment are grouped
+.STACK 1024  ; stack, 1024 bytes
+.DATA        ; data segment, global variables
 
+.CODE        ; code segment
 
 ;returns new coord of head according to current direction (stored in dh)
 ;AX : new coord
@@ -75,7 +82,8 @@ return:
 nextHead ENDP
 	
 
-
+;snake moves from one position depending on DH (direction)
+;new snake-head.coord are placed 2 bytes left of old snake-head.coord in the memory segment
 move PROC NEAR
 	push bp
 	mov bp, sp
@@ -84,6 +92,8 @@ move PROC NEAR
 	push bx
 	push dx
 	
+	call nextHead ;AX : new-snake-head.coord
+	push ax ;save new coord on stack
 	;new-snake-head = [(old-snake-head - mem-segm - 2) % BOARD_SIZE] + mem-segm
 	mov ax, es
 	sub ax, ds
@@ -93,9 +103,9 @@ move PROC NEAR
 	mov bx, BOARD_SIZE
 	idiv bx ;DX : rest = modulo
 	
-	call nextHead ;AX : new-snake-head.coord
 	mov es, ds
 	add es, dx ;new position of snake head
+	pop ax ;get new-snake-head.coord
 	mov [es], ah ;write new-snake-head.x in new position
 	mov [es+1], al ;write new-snake-head.y in new position
 	
@@ -108,18 +118,71 @@ move PROC NEAR
 	ret 0
 move ENDP
 
+;snake-size = snake-size + 1
+;need to be moved before doing collision
 grow PROC NEAR
 	push bp
 	mov bp, sp
 	
-	call move ;move one position
 	inc cx ;snake-length + 1 : tail doesn't move
 	
 	mov sp, bp
 	pop bp
 	ret 0
 grow ENDP
+
+;see if current snake-head collides with it's body
+;AX = 1 if collision, AX = 0 if not
+;TODO other possibilty of return ?
+collide PROC NEAR
+	push bp
+	mov bp, sp
 	
+	push ax
+	push bx
+	push dx
+	push si
 	
+	mov si, cx ;counter to loop over whole body
 	
+	mov ax, si
+	mov dx, 0
+	mov bx, 2
+	mul bx
+	mov si, ax ;counter*2 because 2 bytes per coord
+	
+	mov ah, [es] ;get snake-head.x
+	mov al, [es+1] ;get snake-head.y
+	
+bodyLoop: ;loop from tail to head
+	dec si
+	mov bl, [es+si] ;get body-part.y
+	dec si
+	mov bh, [es+si] ;get body-part.x
+	cmp ax, bx ;head.x == current-body-part.x && head.y == current-body-part.y ?
+	jz collided
+	cmp si, 6 ;no need to check first 3 snake-parts, they will never collide
+	jz notCollided
+	jmp bodyLoop
+
+collided:
+	mov ax, 1 ;collided, AX = 1 (true)
+	jmp return
+notCollided:
+	mov ax, 0 ;not collided, AX = 0 (false)
+	jmp return
+	
+return:
+	
+	pop si
+	pop dx
+	pop bx
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 0
+collide ENDP
+
+END
 	
