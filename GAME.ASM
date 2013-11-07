@@ -3,7 +3,15 @@
 ;==========================
 .MODEL small ; one data and one code segment, stack and data segment are grouped
 .STACK 1024  ; stack, 1024 bytes
+
+INCLUDE Rand.inc
+
 .DATA        ; data segment, global variables
+
+BOARD_X equ 32
+BOARD_Y equ 20
+BOARD_SIZE equ BOARD_X * BOARD_Y
+snake_mem dw BOARD_SIZE dup(?)
 
 .CODE        ; code segment
 
@@ -183,6 +191,64 @@ return:
 	pop bp
 	ret 0
 collide ENDP
+
+makeFood PROC NEAR
+	push bp
+	mov bp, sp
+	
+	;food generated from random number
+	call rand ;AX: random number
+	
+	mov bx, ax
+	mov ah, 0 ;x%BOARD_X
+	mov dl, BOARD_X
+	div dl
+	
+	mov al, bh
+	mov bh, ah ;new x-coord saved
+	mov ah, 0 ;y%BOARD_Y
+	mov dl, BOARD_Y
+	div dl
+	mov bl, ah ;new y-coord saved
+	
+	;TODO new coord collided with snake-part
+	
+	mov sp, bp
+	pop bp
+	ret 0
+makeFood ENDP
+
+initialize PROC NEAR
+	push bp
+	mov bp, sp
+	
+	mov ds, @data
+	mov ds, offset snake_mem ;start of snake memory
+	mov es, ds ;head of snake (first in begin of snake memory)
+	
+	;initialize random number generator
+	call randInit
+	
+	;initialize snake
+	mov ah, 16 ; snake-head.x
+	mov al, 10 ; snake-head.y
+	mov cx, 0 ; size
+	
+	mov si, 0
+snakeInitLoop:
+	mov es:[si], ah ;set x in mem
+	inc si ;counter++
+	mov es:[si], al ;set y in mem
+	inc ah ;x-coord++ (for next body-part of snake)
+	inc si
+	inc cx ;size++
+	cmp cx, 3 ;init-size reached ?
+	jnz snakeInitLoop
+	
+	mov sp, bp
+	pop bp
+	ret 0
+initialize ENDP
 
 END
 	
