@@ -49,4 +49,43 @@ offsetForCoord PROC NEAR
 	pop bx
 	ret 0
 offsetForCoord ENDP
+
+;draw a snake-head at given coord in AX
+drawHead PROC NEAR
+	push bx
+	push dx
+	push di
+	push si
+	push es
 	
+	mov ax, seg screenBuffer
+	mov es, ax ;screenBuffer in es (es points to first pixel of screen)
+	
+	call offsetForCoord ;AX = pixel offset
+	mov di, ax
+	mov dx, 1 ;color from palette
+	
+	;temp : make a filled square
+	mov bx, 0
+yLoop:
+	mov si, 0
+xLoop:
+	mov es:[di], dx ;set color at given offset
+	inc di
+	inc si
+	cmp si, 10
+	jnz xLoop
+	
+	mov ax, SCREEN_X
+	add di, ax
+	inc bx
+	cmp bx, 10
+	jnz yLoop
+	
+	pop es
+	pop si
+	pop di
+	pop dx
+	pop bx
+	ret 0
+drawHead ENDP
