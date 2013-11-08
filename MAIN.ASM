@@ -10,6 +10,9 @@ include VIDEO.INC
 include RAND.INC
 include KEYB.INC
 
+include DRAWING.INC
+include GAME.INC
+
 ; --- DATA SEGMENT -------------------------------------------------------------
 .DATA
 
@@ -17,6 +20,8 @@ include KEYB.INC
 ; --- CODE SEGMENT -------------------------------------------------------------
 .CODE
 main:
+	
+	call initialize
 
 	mov	ax, 4c00h	; exit to DOS
 	int	21h

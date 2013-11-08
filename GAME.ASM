@@ -1,7 +1,7 @@
 ;==========================
 ;Game functionality
 ;==========================
-.MODEL small ; one data and one code segment, stack and data segment are grouped
+.MODEL large ; one data and one code segment, stack and data segment are grouped
 .STACK 1024  ; stack, 1024 bytes
 
 INCLUDE Rand.inc
