@@ -5,6 +5,7 @@
 .STACK 1024  ; stack, 1024 bytes
 
 ;INCLUDE Rand.inc
+INCLUDE DRAWING.INC
 
 .DATA        ; data segment, global variables
 
@@ -260,16 +261,69 @@ snakeInitLoop:
 	ret 0
 initialize ENDP
 
-; main:
-	
-	; call initialize
-	; mov dh, 2
-	; call move
+drawSnake PROC FAR
+	push ax
+	push bx
+	push dx
+	push di
+	push si
 
-	; mov	ax, 4c00h	; exit to DOS
-	; int	21h
+	mov ax, 11
+	mov ax, 11
+	mov di, es
+	mov ah, [di]
+	inc di
+	mov al, [di]
+	inc di
+	call drawHead
 	
-; END main
+	mov si, 1 ;head already drawn
+@bodyLoop:
+	mov ax, di
+	mov dx, ds
+	sub ax, dx
+	
+	mov dx, 0 ;prepare dx
+	mov bx, BOARD_SIZE
+	idiv bx ;DX = rest = modulo
+	
+	mov di, ds
+	add di, dx
+	
+	mov ah, [di]
+	inc di
+	mov al, [di]
+	inc di
+	call drawHead ;should be drawBody
+	inc si
+	cmp si, cx ;if counter == snake-size, finished looping
+	jnz @bodyLoop
+	
+	pop si
+	pop di
+	pop dx
+	pop bx
+	pop ax
+	ret 0
+drawSnake ENDP
+	
+
+main:
+	
+	call initialize
+	call initDrawing
+	;call drawSnake
+	mov ah, 10
+	mov al, 10
+	call drawHead
+	
+	;mov dh, 2
+	;call move
+
+	mov	ax, 4c00h	; exit to DOS
+	int	21h
+	
+END main
 ; _------------------------------- END OF CODE ---------------------------------
-END
+;END
 	

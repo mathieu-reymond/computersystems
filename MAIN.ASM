@@ -21,7 +21,13 @@ include GAME.INC
 .CODE
 main:
 	
-	;call initialize
+	call initialize
+	call initDrawing
+	;mov ah, 10
+	;mov al, 10
+	call drawSnake
+	
+	;call drawHead
 
 	mov	ax, 4c00h	; exit to DOS
 	int	21h
