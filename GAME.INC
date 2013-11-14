@@ -1,5 +1,5 @@
 ;-------------EXPORTS--------------
 
-externdef initialize:NEAR
+externdef initialize:FAR
 
 ;----------------------------------

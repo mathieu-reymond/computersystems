@@ -2,9 +2,9 @@
 ;Game functionality
 ;==========================
 .MODEL large ; one data and one code segment, stack and data segment are grouped
-.STACK 1024  ; stack, 1024 bytes
+;.STACK 1024  ; stack, 1024 bytes
 
-INCLUDE Rand.inc
+;INCLUDE Rand.inc
 
 .DATA        ; data segment, global variables
 
@@ -24,8 +24,9 @@ nextHead PROC NEAR
 	push bx
 	push dx
 	
-	mov ah, [es] ;snake-head.x
-	mov al, [es+1] ;snake-head.y
+	mov di, es
+	mov ah, [di] ;snake-head.x
+	mov al, [di+1] ;snake-head.y
 	
 	mov bx, ax ;save snake-head coord
 	
@@ -104,18 +105,21 @@ move PROC NEAR
 	push ax ;save new coord on stack
 	;new-snake-head = [(old-snake-head - mem-segm - 2) % BOARD_SIZE] + mem-segm
 	mov ax, es
-	sub ax, ds
+	mov bx, ds
+	sub ax, bx
 	sub ax, 2 ;snake-head moved 2 bytes to the left in memory segment
 	
 	mov dx, 0 ;prepare div
 	mov bx, BOARD_SIZE
 	idiv bx ;DX : rest = modulo
 	
-	mov es, ds
-	add es, dx ;new position of snake head
+	mov bx, ds
+	add bx, dx ;new position of snake head
 	pop ax ;get new-snake-head.coord
-	mov [es], ah ;write new-snake-head.x in new position
-	mov [es+1], al ;write new-snake-head.y in new position
+	mov [bx], ah ;write new-snake-head.x in new position
+	mov [bx+1], al ;write new-snake-head.y in new position
+	
+	mov es, bx ;update pointer to snake-head
 	
 	pop dx
 	pop bx
@@ -159,14 +163,18 @@ collide PROC NEAR
 	mul bx
 	mov si, ax ;counter*2 because 2 bytes per coord
 	
-	mov ah, [es] ;get snake-head.x
-	mov al, [es+1] ;get snake-head.y
+	mov di, es
+	mov ah, [di] ;get snake-head.x
+	mov al, [di+1] ;get snake-head.y
 	
+	add di, si
 bodyLoop: ;loop from tail to head
 	dec si
-	mov bl, [es+si] ;get body-part.y
+	dec di
+	mov bl, [di] ;get body-part.y
 	dec si
-	mov bh, [es+si] ;get body-part.x
+	dec di
+	mov bh, [di] ;get body-part.x
 	cmp ax, bx ;head.x == current-body-part.x && head.y == current-body-part.y ?
 	jz collided
 	cmp si, 6 ;no need to check first 3 snake-parts, they will never collide
@@ -197,7 +205,8 @@ makeFood PROC NEAR
 	mov bp, sp
 	
 	;food generated from random number
-	call rand ;AX: random number
+	;call rand ;AX: random number
+	mov ax, 10
 	
 	mov bx, ax
 	mov ah, 0 ;x%BOARD_X
@@ -218,16 +227,17 @@ makeFood PROC NEAR
 	ret 0
 makeFood ENDP
 
-initialize PROC NEAR
+initialize PROC FAR
 	push bp
 	mov bp, sp
 	
-	mov ds, @data
-	mov ds, offset snake_mem ;start of snake memory
-	mov es, ds ;head of snake (first in begin of snake memory)
+	mov ax, @data
+	mov ax, offset snake_mem ;start of snake memory
+	mov ds, ax
+	mov es, ax ;head of snake (first in begin of snake memory)
 	
 	;initialize random number generator
-	call randInit
+	;call randInit
 	
 	;initialize snake
 	mov ah, 16 ; snake-head.x
@@ -250,5 +260,16 @@ snakeInitLoop:
 	ret 0
 initialize ENDP
 
+; main:
+	
+	; call initialize
+	; mov dh, 2
+	; call move
+
+	; mov	ax, 4c00h	; exit to DOS
+	; int	21h
+	
+; END main
+; _------------------------------- END OF CODE ---------------------------------
 END
 	

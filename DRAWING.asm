@@ -19,6 +19,7 @@ palette db 0,0,0,63,63,63
 screenBuffer db SCREEN_X * SCREEN_Y dup(?) ;pixels of screen
 
 ;--------CODE SEGMENT-------
+.CODE
 
 ;get pixel offset for given board-coord
 ;AX the given coord
@@ -51,14 +52,15 @@ offsetForCoord PROC NEAR
 offsetForCoord ENDP
 
 ;draw a snake-head at given coord in AX
-drawHead PROC NEAR
+drawHead PROC FAR
 	push bx
 	push dx
 	push di
 	push si
 	push es
 	
-	mov ax, seg screenBuffer
+	mov ax, seg screenBuffer ;temp mov to ax
+	add ax, offset screenBuffer
 	mov es, ax ;screenBuffer in es (es points to first pixel of screen)
 	
 	call offsetForCoord ;AX = pixel offset
@@ -67,20 +69,20 @@ drawHead PROC NEAR
 	
 	;temp : make a filled square
 	mov bx, 0
-yLoop:
+@yLoop:
 	mov si, 0
-xLoop:
+@xLoop:
 	mov es:[di], dx ;set color at given offset
 	inc di
 	inc si
-	cmp si, 10
-	jnz xLoop
+	cmp si, 10 ;;(SCREEN_X/BOARD_X)
+	jnz @xLoop
 	
 	mov ax, SCREEN_X
 	add di, ax
 	inc bx
-	cmp bx, 10
-	jnz yLoop
+	cmp bx, 10 ;(SCREEN_Y/BOARD_Y)
+	jnz @yLoop
 	
 	pop es
 	pop si
@@ -89,3 +91,4 @@ xLoop:
 	pop bx
 	ret 0
 drawHead ENDP
+END
