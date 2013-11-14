@@ -21,7 +21,7 @@ include GAME.INC
 .CODE
 main:
 	
-	call initialize
+	;call initialize
 
 	mov	ax, 4c00h	; exit to DOS
 	int	21h

@@ -1,5 +1,5 @@
 ;-------------EXPORTS--------------
 
-externdef initialize:FAR
+;externdef initialize:FAR
 
 ;----------------------------------
