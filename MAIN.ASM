@@ -23,11 +23,9 @@ main:
 	
 	call initialize
 	call initDrawing
-	;mov ah, 10
-	;mov al, 10
+	mov ah, 10
+	mov al, 10
 	call drawSnake
-	
-	;call drawHead
 
 	mov	ax, 4c00h	; exit to DOS
 	int	21h

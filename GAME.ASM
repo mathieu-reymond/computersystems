@@ -268,8 +268,6 @@ drawSnake PROC FAR
 	push di
 	push si
 
-	mov ax, 11
-	mov ax, 11
 	mov di, es
 	mov ah, [di]
 	inc di
@@ -308,22 +306,22 @@ drawSnake PROC FAR
 drawSnake ENDP
 	
 
-main:
+; main:
 	
-	call initialize
-	call initDrawing
+	; call initialize
+	; call initDrawing
 	;call drawSnake
-	mov ah, 10
-	mov al, 10
-	call drawHead
+	; mov ah, 10
+	; mov al, 10
+	; call drawHead
 	
 	;mov dh, 2
 	;call move
 
-	mov	ax, 4c00h	; exit to DOS
-	int	21h
+	; mov	ax, 4c00h	; exit to DOS
+	; int	21h
 	
-END main
+;END main
 ; _------------------------------- END OF CODE ---------------------------------
-;END
+END
 	

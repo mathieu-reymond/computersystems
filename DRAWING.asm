@@ -1,133 +1,25 @@
-; ==============================================================================
-; Example for buffered drawing in mode 13h.
-; Example showing palette manipulation via port IO.
-; Example for a very generic game-loop.
-; ==============================================================================
-.MODEL large	; multiple data segments and multiple code segments
-.STACK 2048  	; stack
+;==================
+; Game drawings
+;==================
+.MODEL large
 
-; --- INCLUDES -----------------------------------------------------------------
+;----INCLUDES------
 
-include VIDEO.INC
-include RAND.INC
-include KEYB.INC
 
-; --- MACROS AND CONSTANTS -----------------------------------------------------
 
-; Other constants	
-SCREEN_X		equ 320
-SCREEN_Y		equ 200
+;-----MACRO'S and CONSTANTS------
 
-; --- DATA SEGMENT -------------------------------------------------------------
-.DATA        ; data segment, variables
-oldVideoMode	db ?
+SCREEN_X equ 320
+SCREEN_Y equ 200
 
-hardOffset	dw 0 ; test variable
+;-----SCREEN BUFFER-------
+.FARDATA?
 
-; --- SCREEN BUFFER ------------------------------------------------------------
-.FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
-palette			db 768 dup(0)
-screenBuffer	db 64000 dup(?)	; the 64000 bytes for the screen
+palette db 0,0,0,63,63,63
+screenBuffer db SCREEN_X * SCREEN_Y dup(?) ;pixels of screen
 
-; --- CODE SEGMENT -------------------------------------------------------------
-.CODE        ; code segment
-initDrawing PROC NEAR
-	mov	ax, @data	; get data segment address
-	mov	ds, ax		; set DS to data segment
-	
-	; Install our own keyboard handler
-	;call	installKeyboardHandler
-
-	; fade to black
-	call	fadeToBlack
-	
-	; clear video buffer
-	call	clearScreenBuffer
-
-	; draw the screen buffer
-	call 	updateScreen
-	
-	; set mode 13h
-	mov		ax, 13h
-	push	ax
-	call	setVideoMode
-	mov		[oldVideoMode], al
-	
-initDrawing ENDP
-
-; Fades the active colors to black
-fadeToBlack PROC NEAR
-	push	ax
-
-	mov	ax, seg palette
-	push	ax
-	mov	ax, offset palette
-	push	ax
-	call	paletteInitFade
-@@:
-	waitVBlank
-	call	paletteNextFade
-	test	ax, ax
-	jnz	@B
-
-	pop	ax
-	ret 0
-fadeToBlack ENDP
-
-; Clears the screen buffer to color 0
-clearScreenBuffer PROC NEAR
-	push	ax
-	push	cx
-	push	di
-	push	es
-	
-	cld
-	mov		ax, seg screenBuffer
-	mov		es, ax
-	mov		di, offset screenBuffer
-	mov		cx, 64000 / 2
-	xor		ax, ax
-	rep		stosw
-	
-	pop	es
-	pop	di
-	pop	cx
-	pop	ax
-	ret	0
-clearScreenBuffer ENDP
-
-; Updates the screen (copies contents from screenBuffer to screen)
-updateScreen PROC NEAR
-	push	ax
-	push	cx
-	push	dx
-	push	si
-	push	di
-	push	ds
-	push	es
-	
-	; setup source and dest segments
-	mov		ax, seg screenBuffer
-	mov		ds, ax
-	mov		si, offset screenBuffer
-	mov		ax, 0a000h	; video memory
-	mov		es, ax
-	xor		di, di	; start at pixel 0
-	
-	cld
-	mov		cx, 64000 / 2
-	waitVBlank	; wait for a VB (modifies AX and DX)
-	rep		movsw	; blit to screen	
-	
-	pop		es
-	pop		ds
-	pop		di
-	pop		si
-	pop		dx
-	pop		cx
-	pop		ax
-	ret		0
-updateScreen ENDP
+;--------CODE SEGMENT-------
+.CODE
 
 ;get pixel offset for given board-coord
 ;AX the given coord
@@ -159,40 +51,33 @@ offsetForCoord PROC NEAR
 	ret 0
 offsetForCoord ENDP
 
-; ;draw a snake-head at given coord in AX
-; AX : given coord (AH = x, AL = y)
-drawHead PROC NEAR
-	push	bp
-	mov	bp, sp
+;draw a snake-head at given coord in AX
+drawHead PROC FAR
+	push bx
+	push dx
+	push di
+	push si
+	push es
 	
-	push	ax
-	push	bx
-	push	cx
-	push	dx
-	push	di
-	push	es
+	;mov ax, seg screenBuffer ;temp mov to ax
+	;add ax, offset screenBuffer
+	;mov es, ax ;screenBuffer in es (es points to first pixel of screen)
+	mov bx, 0a000h
+	mov es, bx
 	
-	; set segment
-	mov	bx, seg screenBuffer
-	mov	es, bx
-	
-	;calculate offset from given coord in AX
-	call offsetForCoord ;AX : offset
-	add	ax, offset screenBuffer
-	add	ax, [hardOffset]
-	
+	call offsetForCoord ;AX = pixel offset
 	mov di, ax
-	mov dl, 15 ;color from palette
+	mov dx, 1 ;color from palette
 	
 	;temp : make a filled square
 	mov bx, 0
 @yLoop:
 	mov si, 0
 @xLoop:
-	mov es:[di], dl ;set color at given offset
+	mov es:[di], dx ;set color at given offset
 	inc di
 	inc si
-	cmp si, 10 ;(SCREEN_X/BOARD_X)
+	cmp si, 10 ;;(SCREEN_X/BOARD_X)
 	jnz @xLoop
 	
 	mov ax, SCREEN_X
@@ -202,19 +87,40 @@ drawHead PROC NEAR
 	cmp bx, 10 ;(SCREEN_Y/BOARD_Y)
 	jnz @yLoop
 	
-	call updateScreen
-
-	; We are done
-	pop	es
-	pop	di
-	pop	dx
-	pop	cx
-	pop	bx
-	pop	ax
-	; return
-	pop	bp
-	ret	0
+	pop es
+	pop si
+	pop di
+	pop dx
+	pop bx
+	ret 0
 drawHead ENDP
 
-; _------------------------------- END OF CODE ---------------------------------
+initDrawing PROC FAR
+	push ax
+	push bx
+	push cx
+	push ds
+	push es
+	;set resolution to default (320x200)
+	mov ax, 13h
+	int 10h
+	
+	;set palette (0= black, 1=white)
+	mov ax, @data
+	mov ds, ax
+	mov es, ax
+	mov dx, offset palette
+	xor bx, bx
+	mov cx, 2
+	mov ax, 1012h
+	int 10h
+	
+	pop es
+	pop ds
+	pop cx
+	pop bx
+	pop ax
+	
+	ret 0
+initDrawing ENDP
 END

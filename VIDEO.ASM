@@ -98,6 +98,7 @@ setPalette ENDP
 ; (defaults to 32 steps)
 ; Arguments are SEGMENT and OFFSET of destination palette (points to 768 bytes)
 paletteInitFade PROC FAR
+  ASSUME ds:@FARDATA?, es:@FARDATA?
 	push	bp
 	mov		bp, sp
 
@@ -124,7 +125,7 @@ paletteInitFade PROC FAR
 
 	; get the active palette into paletteFader (shifted left 9 bits)
 	; and create the array of delta (step values) in 16-bit FP arithm.
-	mov		ax, seg paletteFader
+	mov		ax, @FARDATA?
 	mov		es, ax
 	mov		ax, FADESTEPS		; initialize steps
 	mov		es:[paletteStepsC], ax
@@ -212,7 +213,7 @@ paletteNextFade PROC FAR
 	
 	cld
 	
-	mov		ax, seg paletteFader
+	mov		ax, @FARDATA?
 	mov		ds,	ax
 	mov		es, ax
 	
