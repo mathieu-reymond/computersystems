@@ -15,14 +15,27 @@ include KEYB.INC
 ; --- MACROS AND CONSTANTS -----------------------------------------------------
 
 ; Other constants	
-SCREENW		equ 320
-SCREENH		equ 200
+SCREEN_X equ 320
+SCREEN_Y equ 200
+BOARD_X equ 32
+BOARD_Y equ 20
+BOARD_SIZE equ BOARD_X * BOARD_Y
+
+DIR_UP equ 0
+DIR_RIGHT equ 1
+DIR_DOWN equ 2
+DIR_LEFT equ 3
 
 ; --- DATA SEGMENT -------------------------------------------------------------
 .DATA        ; data segment, variables
 oldVideoMode	db ?
 
 hardOffset	dw 0 ; test variable
+snake_mem dw BOARD_SIZE dup(?)
+
+snake_size dw 0 ;size of snake
+snake_direction db DIR_UP ;direction (0=UP, 1=RIGHT, 2=DOWN, 3=LEFT)
+snake_head dw 0 ;offset to head starting from snake_mem
 
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
@@ -49,6 +62,8 @@ main PROC NEAR
 
 	; draw the screen buffer
 	call 	updateScreen
+	
+	;call initGame
 	
 	; set mode 13h
 	mov		ax, 13h
@@ -165,7 +180,19 @@ renderWorld PROC NEAR
 	call	rand
 	and		ax, 07fh
 	push	ax
-	call 	drawRect
+	;call 	drawRect
+	mov ah, 10
+	mov al, 10
+	push ax
+	call drawHead
+	mov ah, 11
+	mov al, 10
+	push ax
+	call drawHead
+	mov ah, 10
+	mov al, 12
+	push ax
+	call drawHead
 
 	; draw the screen buffer
 	call 	updateScreen
@@ -191,7 +218,7 @@ handleInput PROC NEAR
 	cmp	al, 0
 	jz @F	; jump next
 	; call some function to handle this key
-	mov	ax, SCREENW
+	mov	ax, SCREEN_X
 	sub [hardOffset], ax
 	sub [hardOffset], ax
 @@:
@@ -199,7 +226,7 @@ handleInput PROC NEAR
 	cmp	al, 0
 	jz @F	; jump next
 	; call some function to handle this key
-	mov	ax, SCREENW
+	mov	ax, SCREEN_X
 	add [hardOffset], ax
 	add [hardOffset], ax
 @@:
@@ -246,19 +273,19 @@ drawRect PROC NEAR
 	; Calculate posX
 	mov	ax, [bp + 4][2]
 	neg	ax
-	add	ax, SCREENW
+	add	ax, SCREEN_X
 	shr	ax, 1
 	mov	bx, ax		; posX is in BX now
 	
 	; Calculate posY
 	mov	ax, [bp + 4][0]
 	neg	ax
-	add	ax, SCREENH
+	add	ax, SCREEN_Y
 	shr	ax, 1		; and posY is in AX
 	
 	; Calculate offset of top-left corner
-	mov	dx, SCREENW
-	mul	dx		; AX = posY * SCREENW
+	mov	dx, SCREEN_X
+	mul	dx		; AX = posY * SCREEN_X
 	add	ax, bx		; AX now contains start offset of rectangle
 	add	ax, offset screenBuffer
 	add	ax, [hardOffset]
@@ -275,7 +302,7 @@ drawRect PROC NEAR
 	dec	di
 @@:
 	mov	es:[di], al	; set pixel
-	add	di, SCREENW	; jump to next pixel (on next line)
+	add	di, SCREEN_X	; jump to next pixel (on next line)
 	loop	@B
 	
 	; Draw bottom horizontal line
@@ -288,7 +315,7 @@ drawRect PROC NEAR
 	inc di
 @@:
 	mov	es:[di], al	; set pixel
-	sub	di, SCREENW	; jump to next pixel (on next line)
+	sub	di, SCREEN_X	; jump to next pixel (on next line)
 	loop	@B
 
 	; We are done
@@ -302,6 +329,189 @@ drawRect PROC NEAR
 	pop	bp
 	ret	4
 drawRect ENDP
+
+;get pixel offset for given board-coord
+;stack: the given coord
+;@return AX the offset
+offsetForCoord PROC NEAR
+	push bp
+	mov	bp, sp
+	
+	push bx
+	push dx
+
+	mov ax, [bp+4][0] ;get coord from stack
+	;offset = y*SCREEN_X*(SCREEN_Y/BOARD_Y) + x*(SCREEN_X/BOARD_X)
+	mov bx, ax
+	mov ah, 0 ;AX = y
+	mov dx, SCREEN_X
+	mul dx ;AX = SCREEN_X*y
+	mov dx, 10 ;(SCREEN_Y/BOARD_Y)
+	mul dx ;AX = y*SCREEN_X*(SCREEN_Y/BOARD_Y)
+	
+	push ax ;save current offset
+	
+	mov al, bh
+	mov ah, 0 ;AX = x
+	mov dx, 10 ;(SCREEN_X/BOARD_X)
+	mul dx ;AX = x*(SCREEN_X/BOARD_X)
+	
+	pop bx ;restore offset in bx
+	add ax, bx ;AX = y*SCREEN_X*(SCREEN_Y/BOARD_Y) + x*(SCREEN_X/BOARD_X)
+	
+	pop dx
+	pop bx
+	
+	mov sp, bp
+	pop bp
+	ret 2
+offsetForCoord ENDP
+
+;draw a snake-head at given coord on stack
+drawHead PROC NEAR
+	push bp
+	mov	bp, sp
+	
+	push ax
+	push bx
+	push cx
+	push di
+	push es
+	
+	; set segment
+	mov	ax, seg screenBuffer
+	mov	es, ax
+	
+	mov bx, [bp+4][0]
+	push bx
+	call offsetForCoord
+	add	ax, offset screenBuffer
+	
+	mov di, ax
+	mov al, 1 ;color from palette
+	
+	;temp : make a filled square
+	mov bx, 10 ;(SCREEN_Y/BOARD_Y)
+@yLoop:
+	mov cx, 10 ;(SCREEN_X/BOARD_X)
+	rep stosb ;loop cx times the instruction mov es:[di], al
+	mov cx, SCREEN_X
+	sub cx, 10
+	add di, cx
+	dec bx
+	jnz @yLoop
+	
+	pop es
+	pop di
+	pop cx
+	pop bx
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 2
+drawHead ENDP
+
+;========================
+;-------SNAKE GAME-------
+;========================
+initGame PROC NEAR
+	
+	;initialize size
+	mov WORD [snake_size], 3 ;initial size = 3
+	;initialize direction
+	mov BYTE [snake_direction], DIR_LEFT ;initial direction = LEFT
+	
+	;initialize snake
+	mov ah, 16 ; snake-head.x
+	mov al, 10 ; snake-head.y
+	
+	mov cx, 3 ; size
+	
+	mov si, 0
+snakeInitLoop:
+	mov es:[si], ah ;set x in mem
+	inc si ;counter++
+	mov es:[si], al ;set y in mem
+	inc ah ;x-coord++ (for next body-part of snake)
+	inc si
+	inc cx ;size++
+	cmp cx, 3 ;init-size reached ?
+	jnz snakeInitLoop
+	
+	ret 0
+initGame ENDP
+
+;returns new coord of head according to current direction (stored in dh)
+;AX : new coord
+nextHead PROC NEAR
+
+	push bx
+	push dx
+	
+	mov di, es
+	mov ah, [di] ;snake-head.x
+	mov al, [di+1] ;snake-head.y
+	
+	mov bx, ax ;save snake-head coord
+	
+	cmp dh, 0 ;moving to top ?
+	jz top
+	cmp dh, 1 ;moving to right ?
+	jz right
+	cmp dh, 2 ; moving to bottom ?
+	jz bottom
+	cmp dh, 3 ; moving to left ?
+	jz left
+
+top:
+	mov ah, al ;snake-head.y -1 could be negative, need to be in AH to avoid overflow
+	dec ah ;y-1 because moving to top
+	
+	mov al, ah ;prepare div
+	mov ah, 0
+	mov dl, BOARD_Y
+	idiv dl ;AH : rest = modulo
+	mov al, ah ;modified y-coord
+	mov ah, bh ;saved x-coord
+	jmp return
+	
+right:
+	inc ah ;x+1 because moving to right
+	
+	mov al, ah ;prepare div
+	mov ah, 0
+	mov dl, BOARD_X
+	idiv dl ;AH : rest = modulo
+	mov al, bl ;saved y-coord
+	jmp return
+
+bottom:
+	inc al ;y+1 because moving to bottom
+	
+	mov ah, 0 ;prepare div
+	mov dl, BOARD_Y
+	idiv dl ;AH : rest
+	mov al, ah ;modified y-coord
+	mov ah, bh ;saved x-coord
+	jmp return
+
+left:
+	dec ah ;x-1 because moving to left
+	
+	mov al, ah ;prepare div
+	mov ah, 0
+	mov dl, BOARD_X
+	idiv dl
+	mov al, bl ; saved y-coord
+	
+return:
+	;ax contains new snake-head coord
+	pop dx
+	pop bx
+	
+	ret 0
+nextHead ENDP
 
 ; _------------------------------- END OF CODE ---------------------------------
 END main
