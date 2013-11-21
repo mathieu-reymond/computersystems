@@ -2,7 +2,6 @@
 ; Generic video functionality.
 ; ==============================================================================
 .MODEL large	; multiple data segments and multiple code segments
-.STACK 1024
 
 ; --- INCLUDES -----------------------------------------------------------------
 
@@ -19,7 +18,7 @@ FADESTEPS	equ	32
 FADESTEPSB	equ	5	; 5 bits
 
 ; --- DATA SEGMENT -------------------------------------------------------------
-.FARDATA?
+.DATA?
 
 ; The following buffer is used to keep 16-bit fixed point palette values during fading
 paletteFader	dw 2 * 768 dup(?)
@@ -98,7 +97,6 @@ setPalette ENDP
 ; (defaults to 32 steps)
 ; Arguments are SEGMENT and OFFSET of destination palette (points to 768 bytes)
 paletteInitFade PROC FAR
-  ASSUME ds:@FARDATA?, es:@FARDATA?
 	push	bp
 	mov		bp, sp
 
@@ -125,7 +123,7 @@ paletteInitFade PROC FAR
 
 	; get the active palette into paletteFader (shifted left 9 bits)
 	; and create the array of delta (step values) in 16-bit FP arithm.
-	mov		ax, @FARDATA?
+	mov		ax, seg paletteFader
 	mov		es, ax
 	mov		ax, FADESTEPS		; initialize steps
 	mov		es:[paletteStepsC], ax
@@ -200,8 +198,6 @@ paletteInitFade ENDP
 ; Perform the next palette fading step
 ; More steps are needed when return value (AX) is non-zero
 paletteNextFade PROC FAR
-  ASSUME ds:@FARDATA?, es:@FARDATA?
-	
 	push	bp
 	
 	push	bx
@@ -213,7 +209,7 @@ paletteNextFade PROC FAR
 	
 	cld
 	
-	mov		ax, @FARDATA?
+	mov		ax, seg paletteFader
 	mov		ds,	ax
 	mov		es, ax
 	
