@@ -63,7 +63,8 @@ main PROC NEAR
 	; draw the screen buffer
 	call 	updateScreen
 	
-	;call initGame
+	;init game variables
+	call initGame
 	
 	; set mode 13h
 	mov		ax, 13h
@@ -170,7 +171,7 @@ updateScreen ENDP
 
 renderWorld PROC NEAR
 	push	ax
-	
+	push di
 	call	clearScreenBuffer
 
 	; draw a random rectangle
@@ -181,22 +182,15 @@ renderWorld PROC NEAR
 	and		ax, 07fh
 	push	ax
 	;call 	drawRect
-	mov ah, 10
-	mov al, 10
+	call drawSnake
+	;nextHead test
+	call nextHead
 	push ax
 	call drawHead
-	mov ah, 11
-	mov al, 10
-	push ax
-	call drawHead
-	mov ah, 10
-	mov al, 12
-	push ax
-	call drawHead
-
+	
 	; draw the screen buffer
 	call 	updateScreen
-	
+	pop di
 	pop	ax
 	ret	0
 renderWorld ENDP
@@ -412,56 +406,140 @@ drawHead PROC NEAR
 	ret 2
 drawHead ENDP
 
+drawSnake PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push ax
+	push bx
+	push cx
+	push dx
+	push di
+	push es
+	
+	;set segment
+	mov ax, seg snake_mem
+	mov es, ax
+	;set offset
+	mov ax, offset snake_mem
+	add ax, [snake_head]
+	mov di, ax
+	;size counter
+	mov cx, [snake_size]
+	
+bodyLoop:
+	;get current body-part
+	mov ah, es:[di]
+	inc di
+	mov al, es:[di]
+	inc di
+	;draw current body-part
+	push ax
+	call drawHead
+	;modulo current offset
+	mov ax, di
+	sub ax, offset snake_mem
+	mov bx, BOARD_SIZE
+	mov dx, 0
+	div bx ;DX : rest = modulo
+	add dx, offset snake_mem
+	mov di, dx
+	;next step
+	dec cx
+	jnz bodyLoop
+	
+	pop es
+	pop di
+	pop dx
+	pop cx
+	pop bx
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 0
+drawSnake ENDP
+
 ;========================
 ;-------SNAKE GAME-------
 ;========================
 initGame PROC NEAR
+	push bp
+	mov	bp, sp
+	
+	push ax
+	push cx
+	push di ;used with stosw
+	push es
 	
 	;initialize size
-	mov WORD [snake_size], 3 ;initial size = 3
+	mov WORD PTR [snake_size], 3 ;initial size = 3
 	;initialize direction
-	mov BYTE [snake_direction], DIR_LEFT ;initial direction = LEFT
+	mov BYTE PTR [snake_direction], DIR_LEFT ;initial direction = LEFT
+	;initialize head
+	mov WORD PTR [snake_head], 0 ;head is at beginning of snake_mem
+	
+	mov ax, seg snake_mem
+	mov es, ax
+	mov ax, offset snake_mem
+	add ax, [snake_head]
+	mov di, ax
 	
 	;initialize snake
-	mov ah, 16 ; snake-head.x
-	mov al, 10 ; snake-head.y
+	;inverse x and y because when writing word with stosw,
+	;al will be written first
+	mov ah, 10 ; snake-head.y
+	mov al, 16 ; snake-head.x
 	
-	mov cx, 3 ; size
-	
-	mov si, 0
+	mov cx, 3 ; size counter
 snakeInitLoop:
-	mov es:[si], ah ;set x in mem
-	inc si ;counter++
-	mov es:[si], al ;set y in mem
-	inc ah ;x-coord++ (for next body-part of snake)
-	inc si
-	inc cx ;size++
-	cmp cx, 3 ;init-size reached ?
+	stosw ;store ax in snake_mem : mov es:[di], ax
+	inc al ;update x-coord
+	dec cx
 	jnz snakeInitLoop
 	
+	pop es
+	pop di
+	pop cx
+	pop ax
+	
+	mov sp, bp
+	pop bp
 	ret 0
 initGame ENDP
 
-;returns new coord of head according to current direction (stored in dh)
+;returns new coord of head according to current direction
 ;AX : new coord
 nextHead PROC NEAR
+	push bp
+	mov	bp, sp
 
 	push bx
 	push dx
+	push di
+	push es
 	
-	mov di, es
+	;set segment
+	mov ax, seg snake_mem
+	mov es, ax
+	;set offset
+	mov ax, offset snake_mem
+	add ax, [snake_head]
+	mov di, ax
+	
+	;coord
 	mov ah, [di] ;snake-head.x
 	mov al, [di+1] ;snake-head.y
 	
 	mov bx, ax ;save snake-head coord
 	
-	cmp dh, 0 ;moving to top ?
+	cmp [snake_direction], DIR_UP ;moving to top ?
 	jz top
-	cmp dh, 1 ;moving to right ?
+	cmp [snake_direction], DIR_RIGHT ;moving to right ?
 	jz right
-	cmp dh, 2 ; moving to bottom ?
+	cmp [snake_direction], DIR_DOWN ; moving to bottom ?
 	jz bottom
-	cmp dh, 3 ; moving to left ?
+	cmp [snake_direction], DIR_LEFT ; moving to left ?
 	jz left
 
 top:
@@ -507,9 +585,13 @@ left:
 	
 return:
 	;ax contains new snake-head coord
+	pop es
+	pop di
 	pop dx
 	pop bx
 	
+	mov sp, bp
+	pop bp
 	ret 0
 nextHead ENDP
 
