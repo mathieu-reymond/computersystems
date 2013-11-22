@@ -37,6 +37,8 @@ snake_size dw 0 ;size of snake
 snake_direction db DIR_UP ;direction (0=UP, 1=RIGHT, 2=DOWN, 3=LEFT)
 snake_head dw 0 ;offset to head starting from snake_mem
 
+WAIT_TIME dw 0
+
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
 palette			db 768 dup(0)
@@ -177,16 +179,22 @@ renderWorld PROC NEAR
 	; draw a random rectangle
 	call	rand
 	and		ax, 0ffh
-	push	ax
+	;push	ax
 	call	rand
 	and		ax, 07fh
-	push	ax
+	;push	ax
 	;call 	drawRect
 	call drawSnake
-	;nextHead test
-	call nextHead
-	push ax
-	call drawHead
+	;nextHead test - OK
+	;call nextHead
+	;push ax
+	;call drawHead
+	;move test
+	call move
+	;grow test
+	call grow
+	
+	call wait
 	
 	; draw the screen buffer
 	call 	updateScreen
@@ -323,6 +331,28 @@ drawRect PROC NEAR
 	pop	bp
 	ret	4
 drawRect ENDP
+
+wait PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push ax
+	push dx
+	
+timer:
+	mov ah, 00h
+	int 1ah
+	cmp dx, wait_time
+	jb timer
+	add dx, 3 ;1-18, where smaller is faster and 18 is close to 1 second
+	mov wait_time, dx
+	
+	pop dx
+	pop ax
+	
+	mov sp, bp
+	pop bp
+wait ENDP
 
 ;get pixel offset for given board-coord
 ;stack: the given coord
@@ -475,7 +505,7 @@ initGame PROC NEAR
 	;initialize size
 	mov WORD PTR [snake_size], 3 ;initial size = 3
 	;initialize direction
-	mov BYTE PTR [snake_direction], DIR_LEFT ;initial direction = LEFT
+	mov BYTE PTR [snake_direction], DIR_UP ;initial direction = LEFT
 	;initialize head
 	mov WORD PTR [snake_head], 0 ;head is at beginning of snake_mem
 	
@@ -488,7 +518,7 @@ initGame PROC NEAR
 	;initialize snake
 	;inverse x and y because when writing word with stosw,
 	;al will be written first
-	mov ah, 10 ; snake-head.y
+	mov ah, 1 ; snake-head.y
 	mov al, 16 ; snake-head.x
 	
 	mov cx, 3 ; size counter
@@ -543,11 +573,15 @@ nextHead PROC NEAR
 	jz left
 
 top:
-	mov ah, al ;snake-head.y -1 could be negative, need to be in AH to avoid overflow
-	dec ah ;y-1 because moving to top
-	
-	mov al, ah ;prepare div
+	;BUG :
+	;ax : 0000
+	;after dec al
+	;ax : 00FF
+	;after idiv
+	;ax : 0F0C ;255%20 = 15 (FF%14 = F) but should be (-1)%20 = 19
 	mov ah, 0
+	dec al ;y-1 because moving to top
+	
 	mov dl, BOARD_Y
 	idiv dl ;AH : rest = modulo
 	mov al, ah ;modified y-coord
@@ -594,6 +628,75 @@ return:
 	pop bp
 	ret 0
 nextHead ENDP
+
+move PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push ax
+	push bx
+	push dx
+	push di
+	push es
+	
+	;get new-head coord
+	call nextHead
+	push ax ;store result
+	;set segment
+	mov ax, seg snake_mem
+	mov es, ax
+	;set new snake_head offset
+	mov ax, [snake_head]
+	sub ax, 2 ;next head is 1 word on the left in mem
+	mov bx, BOARD_SIZE
+	mov dx, 0
+	idiv bx ;DX : rest = modulo
+	mov [snake_head], dx ;update snake-head pos in mem
+	;set offset
+	mov ax, offset snake_mem
+	add ax, [snake_head]
+	mov di, ax
+	;get new-head coord
+	pop ax
+	;stosw ;write new-head in mem
+	mov es:[di], ah
+	mov es:[di+1], al
+	
+	pop es
+	pop di
+	pop dx
+	pop bx
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 0
+move ENDP
+
+grow PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push ax
+	push di
+	push es
+	
+	mov ax, seg snake_size
+	mov es, ax
+	mov ax, offset snake_size
+	mov di, ax
+	mov ax, [snake_size]
+	inc ax
+	stosw ;snake_size++
+	
+	pop es
+	pop di
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 0
+grow ENDP
 
 ; _------------------------------- END OF CODE ---------------------------------
 END main
