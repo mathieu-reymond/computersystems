@@ -173,7 +173,7 @@ updateScreen ENDP
 
 renderWorld PROC NEAR
 	push	ax
-	push di
+	push 	di
 	call	clearScreenBuffer
 
 	; draw a random rectangle
@@ -183,18 +183,31 @@ renderWorld PROC NEAR
 	call	rand
 	and		ax, 07fh
 	;push	ax
+	
+	;move test - OK
+	call move
+	;grow test - OK
+	call grow
+	;collide test - OK
+	call nextHead
+	push ax ;coord to check
+	mov ax, 1
+	push ax ;check whole snake
+	call collide
+	cmp ax, 1 ;result true ?
+	jnz noCollide
+	mov al, [snake_direction]
+	inc ax
+	mov BYTE PTR [snake_direction], al
+noCollide:
 	;call 	drawRect
 	call drawSnake
 	;nextHead test - OK
 	;call nextHead
 	;push ax
 	;call drawHead
-	;move test
-	call move
-	;grow test
-	call grow
 	
-	call wait
+	call delay
 	
 	; draw the screen buffer
 	call 	updateScreen
@@ -332,7 +345,7 @@ drawRect PROC NEAR
 	ret	4
 drawRect ENDP
 
-wait PROC NEAR
+delay PROC NEAR
 	push bp
 	mov bp, sp
 	
@@ -352,7 +365,8 @@ timer:
 	
 	mov sp, bp
 	pop bp
-wait ENDP
+	ret 0
+delay ENDP
 
 ;get pixel offset for given board-coord
 ;stack: the given coord
@@ -507,7 +521,7 @@ initGame PROC NEAR
 	;initialize direction
 	mov BYTE PTR [snake_direction], DIR_UP ;initial direction = LEFT
 	;initialize head
-	mov WORD PTR [snake_head], 0 ;head is at beginning of snake_mem
+	mov WORD PTR [snake_head], 10 ;head is at beginning of snake_mem
 	
 	mov ax, seg snake_mem
 	mov es, ax
@@ -579,14 +593,30 @@ top:
 	;ax : 00FF
 	;after idiv
 	;ax : 0F0C ;255%20 = 15 (FF%14 = F) but should be (-1)%20 = 19
+	;***********
+	;ax : 0000
+	;after dec ax
+	;ax : FFFF
+	;after idiv
+	;ax : FF00 ;rest = -1
+	;***********
+	;solution ?
 	mov ah, 0
-	dec al ;y-1 because moving to top
-	
-	mov dl, BOARD_Y
-	idiv dl ;AH : rest = modulo
-	mov al, ah ;modified y-coord
+	dec ax
+	jns positive
+	add al, BOARD_Y
+positive:
 	mov ah, bh ;saved x-coord
 	jmp return
+	
+	;mov ah, 0
+	;dec ax ;y-1 because moving to top
+	
+	;mov dl, BOARD_Y
+	;idiv dl ;AH : rest = modulo
+	;mov al, ah ;modified y-coord
+	;mov ah, bh ;saved x-coord
+	;jmp return
 	
 right:
 	inc ah ;x+1 because moving to right
@@ -648,10 +678,12 @@ move PROC NEAR
 	;set new snake_head offset
 	mov ax, [snake_head]
 	sub ax, 2 ;next head is 1 word on the left in mem
-	mov bx, BOARD_SIZE
-	mov dx, 0
-	idiv bx ;DX : rest = modulo
-	mov [snake_head], dx ;update snake-head pos in mem
+	
+	jns positive
+	add ax, BOARD_SIZE
+positive:
+	mov [snake_head], ax ;update snake-head pos in mem
+	
 	;set offset
 	mov ax, offset snake_mem
 	add ax, [snake_head]
@@ -697,6 +729,74 @@ grow PROC NEAR
 	pop bp
 	ret 0
 grow ENDP
+
+;see if given coord is contained id body of snake
+;stack : top = nb of bodyparts to be skipped from head
+;              (0=check all including head, 1=check all except head...)
+;        next = coord to check
+;AX : result (0=false, 1=true)
+collide PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push bx
+	push cx
+	push dx
+	push di
+	push es
+	
+	;set segment
+	mov ax, seg snake_size
+	mov es, ax
+	;snake_mem offset
+	mov ax, offset snake_mem
+	mov di, ax
+	;set offset
+	mov ax, 2
+	mov cx, [snake_size]
+	mul cx 
+	add ax, [snake_head] ;AX contains offset to tail
+	;modulo offset
+	mov dx, 0
+	mov bx, BOARD_SIZE
+	idiv bx ;DX : rest = modulo
+	
+	mov ax, [bp+4][2] ;coord to check
+	
+bodyLoop:
+	cmp cx, [bp+4][0] ;reached bodyparts to skip ?
+	jz notCollided
+	dec dx
+	jns positive
+	add dx, BOARD_SIZE
+positive:
+	add di, dx
+	mov bl, [di] ;y-coord
+	mov bh, [di-1] ;x-coord
+	sub di, dx
+	dec dx
+	cmp ax, bx ;see if coord are equal
+	jz collided
+	dec cx ;counter--
+	jmp bodyLoop
+	
+collided:
+	mov ax, 1 ;true
+	jmp return
+notCollided:
+	mov ax, 0 ;false
+	
+return:
+	pop es
+	pop di
+	pop dx
+	pop cx
+	pop bx
+
+	mov sp, bp
+	pop bp
+	ret 4
+collide ENDP
 
 ; _------------------------------- END OF CODE ---------------------------------
 END main
