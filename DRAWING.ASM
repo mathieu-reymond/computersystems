@@ -26,6 +26,8 @@ DIR_RIGHT equ 1
 DIR_DOWN equ 2
 DIR_LEFT equ 3
 
+FOOD_MAX equ 5
+
 ; --- DATA SEGMENT -------------------------------------------------------------
 .DATA        ; data segment, variables
 oldVideoMode	db ?
@@ -36,6 +38,9 @@ snake_mem dw BOARD_SIZE dup(?)
 snake_size dw 0 ;size of snake
 snake_direction db DIR_UP ;direction (0=UP, 1=RIGHT, 2=DOWN, 3=LEFT)
 snake_head dw 0 ;offset to head starting from snake_mem
+
+food_nb db 0 ;current nb of food-objects
+food_mem db 3*FOOD_MAX dup(?) ;array with food-objects
 
 WAIT_TIME dw 0
 
@@ -187,7 +192,7 @@ renderWorld PROC NEAR
 	;move test - OK
 	call move
 	;grow test - OK
-	call grow
+	;call grow
 	;collide test - OK
 	call nextHead
 	push ax ;coord to check
@@ -206,6 +211,15 @@ noCollide:
 	;call nextHead
 	;push ax
 	;call drawHead
+	
+	;newFood test
+	call newFood
+	mov ax, offset food_mem
+	mov di, ax
+	mov ah, [di]
+	mov al, [di+1]
+	push ax
+	call drawFood
 	
 	call delay
 	
@@ -504,6 +518,51 @@ bodyLoop:
 	ret 0
 drawSnake ENDP
 
+;draw a food-object at given coord on stack
+drawFood PROC NEAR
+	push bp
+	mov	bp, sp
+	
+	push ax
+	push bx
+	push cx
+	push di
+	push es
+	
+	; set segment
+	mov	ax, seg screenBuffer
+	mov	es, ax
+	
+	mov bx, [bp+4][0]
+	push bx
+	call offsetForCoord
+	add	ax, offset screenBuffer
+	
+	mov di, ax
+	mov al, 5 ;color from palette
+	
+	;temp : make a filled square
+	mov bx, 10 ;(SCREEN_Y/BOARD_Y)
+@yLoop:
+	mov cx, 10 ;(SCREEN_X/BOARD_X)
+	rep stosb ;loop cx times the instruction mov es:[di], al
+	mov cx, SCREEN_X
+	sub cx, 10
+	add di, cx
+	dec bx
+	jnz @yLoop
+	
+	pop es
+	pop di
+	pop cx
+	pop bx
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 2
+drawFood ENDP
+
 ;========================
 ;-------SNAKE GAME-------
 ;========================
@@ -797,6 +856,69 @@ return:
 	pop bp
 	ret 4
 collide ENDP
+
+;========================
+;----------FOOD----------
+;========================
+
+newFood PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push ax
+	push bx
+	push di
+	push es
+	
+	;set segment
+	mov ax, seg food_mem
+	mov es, ax
+	;set new-food offset
+	mov ax, 3
+	mov bl, [food_nb]
+	mul bl
+	add ax, offset food_mem
+	mov di, ax
+	;generate random coord
+	mov ax, BOARD_X
+	push ax
+	call randLimited
+	mov bh, al ;save x-coord
+	mov ax, BOARD_Y
+	push ax
+	call randLimited
+	mov bl, al ;save y-coord
+	
+collisionLoop:
+	push bx ;collision check
+	mov ax, 0 ;check whole body
+	push ax 
+	call collide
+	cmp ax, 0
+	jz notCollided
+	dec bh
+	jns collisionLoop ;x-coord valid, loop again
+	add bh, BOARD_X ;set x-coord
+	dec bl
+	jns collisionLoop ;y-coord valid, loop again
+	add bl, BOARD_Y ;set y-coord
+	jmp collisionLoop
+	
+notCollided: ;bx : new-food coord
+	mov [di], bh ;x-coord
+	mov [di+1], bl ;y-coord
+	mov al, 0 ;food type
+	mov [di+2], al
+	
+	pop es
+	pop di
+	pop bx
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 0
+newFood ENDP
 
 ; _------------------------------- END OF CODE ---------------------------------
 END main

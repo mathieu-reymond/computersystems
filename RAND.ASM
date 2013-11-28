@@ -174,5 +174,30 @@ rand PROC FAR
 	ret	0
 rand ENDP
 
+;generate random number
+;stack : top - upper limit
+;AX : return rand nb < upperlimit
+randLimited PROC FAR
+	push	bp	; save dynamic link
+	mov	bp, sp	; update bp
+	
+	push bx
+	push dx
+	
+	call rand ;ax : random nb
+	mov dx, 0
+	mov bx, [bp+6][0]
+	div bx ;DX = rest
+	
+	mov ax, dx ;return ax
+	
+	pop dx
+	pop bx
+	
+	mov sp, bp
+	pop bp
+	ret 2
+randLimited ENDP
+
 ; _------------------------------- END OF CODE ---------------------------------
 END

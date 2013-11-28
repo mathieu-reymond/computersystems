@@ -6,6 +6,7 @@
 
 externdef rand:FAR
 externdef randInit:FAR
+externdef randLimited:FAR
 
 ; --- MACROS AND CONSTANTS -----------------------------------------------------
 
