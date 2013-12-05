@@ -28,6 +28,13 @@ DIR_LEFT equ 3
 
 FOOD_MAX equ 5
 
+b equ 1 ;blue
+g equ 2 ;green
+r equ 4 ;red
+o equ 6 ;orange
+y equ 14 ;yellow
+l equ 46 ;light green
+
 ; --- DATA SEGMENT -------------------------------------------------------------
 .DATA        ; data segment, variables
 oldVideoMode	db ?
@@ -47,17 +54,74 @@ score dw 0 ;the game-score
 
 WAIT_TIME dw 0
 
-draw_snake_head byte 10,10
-				byte 1,1,1,1,1,1,1,1,1,1
-				byte 1,1,1,1,1,1,1,1,1,1
-			   	byte 1,1,1,1,1,1,1,1,1,1
-				byte 1,1,1,1,1,1,1,1,1,1
-				byte 1,1,1,1,1,1,1,1,1,1
-				byte 1,1,1,1,1,1,1,1,1,1
-				byte 1,1,1,1,1,1,1,1,1,1
-				byte 1,1,1,1,1,1,1,1,1,1
-				byte 1,1,1,1,1,1,1,1,1,1
-				byte 1,1,1,1,1,1,1,1,1,1
+draw_snake_head_up byte 10,10
+				byte r,r,r,b,b,b,b,r,r,r
+				byte r,r,r,r,b,b,r,r,r,r
+			   	byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+draw_snake_head_right byte 10,10
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+			   	byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,b
+				byte r,r,r,r,r,r,r,r,b,b
+				byte r,r,r,r,r,r,r,r,b,b
+				byte r,r,r,r,r,r,r,r,r,b
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+draw_snake_head_down byte 10,10
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+			   	byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,b,b,r,r,r,r
+				byte r,r,r,b,b,b,b,r,r,r
+draw_snake_head_left byte 10,10
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+			   	byte r,r,r,r,r,r,r,r,r,r
+				byte b,r,r,r,r,r,r,r,r,r
+				byte b,b,r,r,r,r,r,r,r,r
+				byte b,b,r,r,r,r,r,r,r,r
+				byte b,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+				byte r,r,r,r,r,r,r,r,r,r
+				
+draw_snake_body byte 10,10
+				byte b,b,b,b,b,b,b,b,b,b
+				byte b,b,b,b,b,b,b,b,b,b
+			   	byte b,b,b,b,b,b,b,b,b,b
+				byte b,b,b,b,b,b,b,b,b,b
+				byte b,b,b,b,b,b,b,b,b,b
+				byte b,b,b,b,b,b,b,b,b,b
+				byte b,b,b,b,b,b,b,b,b,b
+				byte b,b,b,b,b,b,b,b,b,b
+				byte b,b,b,b,b,b,b,b,b,b
+				byte b,b,b,b,b,b,b,b,b,b
+				
+draw_food_normal byte 10,10
+				 byte o,o,o,o,o,o,o,o,o,o
+				 byte o,o,o,o,o,o,o,o,o,o
+			   	 byte o,o,o,o,o,o,o,o,o,o
+				 byte o,o,o,o,o,o,o,o,o,o
+				 byte o,o,o,o,o,o,o,o,o,o
+				 byte o,o,o,o,o,o,o,o,o,o
+				 byte o,o,o,o,o,o,o,o,o,o
+				 byte o,o,o,o,o,o,o,o,o,o
+				 byte o,o,o,o,o,o,o,o,o,o
+				 byte o,o,o,o,o,o,o,o,o,o
 
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
@@ -219,11 +283,12 @@ updateWorld PROC NEAR
 	
 	call move
 	call eatFood
+	mov ax, @data
+	mov ds, ax
 	mov ax, offset snake_mem
 	add ax, [snake_head]
-	mov di, ax
-	mov ah, [di]
-	mov al, [di+1]
+	mov si, ax
+	lodsw
 	push ax ;coord
 	mov ax, 3 ;skip first 3 parts
 	push ax
@@ -316,7 +381,7 @@ timer:
 	mov ah, [snake_speed]
 	sub al, ah
 	mov ah, 0
-	add dx, ax ;1-18, where smaller is faster and 18 is close to 1 second
+	add dx, ax ;0-18, where smaller is faster and 18 is close to 1 second
 	mov wait_time, dx
 	
 	pop dx
@@ -428,8 +493,17 @@ drawHead PROC NEAR
 	mov	bp, sp
 	
 	push ax
-	
-	mov ax, offset draw_snake_head
+	cmp [snake_direction], DIR_UP
+	mov ax, offset draw_snake_head_up
+	jz draw
+	cmp [snake_direction], DIR_RIGHT
+	mov ax, offset draw_snake_head_right
+	jz draw
+	cmp [snake_direction], DIR_DOWN
+	mov ax, offset draw_snake_head_down
+	jz draw
+	mov ax, offset draw_snake_head_left
+draw:
 	push ax
 	mov ax, [bp+4][0]
 	push ax
@@ -442,6 +516,26 @@ drawHead PROC NEAR
 	ret 2
 drawHead ENDP
 
+;draw a snake-body-part at given coord on stack
+drawBody PROC NEAR
+	push bp
+	mov	bp, sp
+	
+	push ax
+	
+	mov ax, offset draw_snake_body
+	push ax
+	mov ax, [bp+4][0]
+	push ax
+	call drawArray
+
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 2
+drawBody ENDP
+
 drawSnake PROC NEAR
 	push bp
 	mov bp, sp
@@ -450,42 +544,48 @@ drawSnake PROC NEAR
 	push bx
 	push cx
 	push dx
-	push di
-	push es
+	push si
+	push ds
 	
 	;set segment
-	mov ax, seg snake_mem
-	mov es, ax
+	mov ax, @data
+	mov ds, ax
 	;set offset
 	mov ax, offset snake_mem
 	add ax, [snake_head]
-	mov di, ax
+	mov si, ax
 	;size counter
 	mov cx, [snake_size]
 	
-bodyLoop:
-	;get current body-part
-	mov ah, es:[di]
-	inc di
-	mov al, es:[di]
-	inc di
-	;draw current body-part
+	;get head
+	lodsw
+	;draw head
 	push ax
 	call drawHead
+	
+bodyLoop:
+	;next step
+	dec cx
+	jz return
 	;modulo current offset
-	mov ax, di
+	mov ax, si
 	sub ax, offset snake_mem
 	mov bx, BOARD_SIZE
 	mov dx, 0
 	div bx ;DX : rest = modulo
 	add dx, offset snake_mem
-	mov di, dx
-	;next step
-	dec cx
-	jnz bodyLoop
+	mov si, dx
+	;get current body-part
+	lodsw
+	;draw current body-part
+	push ax
+	call drawBody
+	jmp bodyLoop
 	
-	pop es
-	pop di
+return:
+	
+	pop ds
+	pop si
 	pop dx
 	pop cx
 	pop bx
@@ -502,38 +602,13 @@ drawFood PROC NEAR
 	mov	bp, sp
 	
 	push ax
-	push bx
-	push cx
-	push di
-	push es
 	
-	; set segment
-	mov	ax, seg screenBuffer
-	mov	es, ax
-	
-	mov bx, [bp+4][0]
-	push bx
-	call offsetForCoord
-	add	ax, offset screenBuffer
-	
-	mov di, ax
-	mov al, 5 ;color from palette
-	
-	;temp : make a filled square
-	mov bx, 10 ;(SCREEN_Y/BOARD_Y)
-@yLoop:
-	mov cx, 10 ;(SCREEN_X/BOARD_X)
-	rep stosb ;loop cx times the instruction mov es:[di], al
-	mov cx, SCREEN_X
-	sub cx, 10
-	add di, cx
-	dec bx
-	jnz @yLoop
-	
-	pop es
-	pop di
-	pop cx
-	pop bx
+	mov ax, offset draw_food_normal
+	push ax
+	mov ax, [bp+4][0]
+	push ax
+	call drawArray
+
 	pop ax
 	
 	mov sp, bp
@@ -562,11 +637,9 @@ drawAllFood PROC NEAR
 	mov cl, [food_nb]
 
 foodLoop:
-	lodsw ;ah : y-coord, al : x-coord !
-	mov bh, al
-	mov bl, ah
+	lodsw
 	
-	push bx
+	push ax
 	call drawFood
 	inc si ;skip type byte
 	dec cx
@@ -610,8 +683,8 @@ initGame PROC NEAR
 	;initialize snake
 	;inverse x and y because when writing word with stosw,
 	;al will be written first
-	mov ah, 1 ; snake-head.y
-	mov al, 16 ; snake-head.x
+	mov ah, 16 ;snake-head.x
+	mov al, 1 ;snake-head.y
 	
 	mov cx, 3 ; size counter
 snakeInitLoop:
@@ -650,8 +723,8 @@ nextHead PROC NEAR
 	mov di, ax
 	
 	;coord
-	mov ah, [di] ;snake-head.x
-	mov al, [di+1] ;snake-head.y
+	mov al, [di] ;snake-head.y
+	mov ah, [di+1] ;snake-head.x
 	
 	mov bx, ax ;save snake-head coord
 	
@@ -745,9 +818,9 @@ positive:
 	mov di, ax
 	;get new-head coord
 	pop ax
-	;stosw ;write new-head in mem
-	mov es:[di], ah
-	mov es:[di+1], al
+	stosw ;write new-head in mem
+	;mov es:[di], ah
+	;mov es:[di+1], al
 	
 	pop es
 	pop di
@@ -827,8 +900,10 @@ bodyLoop:
 	add dx, BOARD_SIZE
 positive:
 	add di, dx
-	mov bl, [di] ;y-coord
-	mov bh, [di-1] ;x-coord
+	;mov bl, [di] ;y-coord
+	;mov bh, [di-1] ;x-coord
+	mov bh, [di] ;x-coord
+	mov bl, [di-1] ;y-coord
 	sub di, dx
 	dec dx
 	cmp ax, bx ;see if coord are equal
@@ -902,8 +977,8 @@ collisionLoop:
 	jmp collisionLoop
 	
 notCollided: ;bx : new-food coord
-	mov [di], bh ;x-coord
-	mov [di+1], bl ;y-coord
+	mov [di+1], bh ;x-coord
+	mov [di], bl ;y-coord
 	mov al, 0 ;food type
 	mov [di+2], al
 	
