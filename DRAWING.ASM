@@ -79,12 +79,16 @@ main PROC NEAR
 	call	setVideoMode
 	mov		[oldVideoMode], al
 	
+	;first food
+	call newFood
+	call newFood
+	
 @main_loop:	
 	;call	updateWorld	; this would contain the game code (like AI)
 
 	call	renderWorld	; draws the world
 	
-	call	handleInput	; handle user input
+	call	handleGameInput	; handle user input
 	cmp		al, 0
 	jz		@main_loop
 	
@@ -194,16 +198,16 @@ renderWorld PROC NEAR
 	;grow test - OK
 	;call grow
 	;collide test - OK
-	call nextHead
-	push ax ;coord to check
-	mov ax, 1
-	push ax ;check whole snake
-	call collide
-	cmp ax, 1 ;result true ?
-	jnz noCollide
-	mov al, [snake_direction]
-	inc ax
-	mov BYTE PTR [snake_direction], al
+	;call nextHead
+	;push ax ;coord to check
+	;mov ax, 1
+	;push ax ;check whole snake
+	;call collide
+	;cmp ax, 1 ;result true ?
+	;jnz noCollide
+	;mov al, [snake_direction]
+	;inc ax
+	;mov BYTE PTR [snake_direction], al
 noCollide:
 	;call 	drawRect
 	call drawSnake
@@ -212,14 +216,20 @@ noCollide:
 	;push ax
 	;call drawHead
 	
+	;eatFood test
+	call eatFood
+	
 	;newFood test
-	call newFood
-	mov ax, offset food_mem
-	mov di, ax
-	mov ah, [di]
-	mov al, [di+1]
-	push ax
-	call drawFood
+	;call newFood
+	;drawFood test - OK
+	;mov ax, offset food_mem
+	;mov di, ax
+	;mov ah, [di]
+	;mov al, [di+1]
+	;push ax
+	;call drawFood
+	;drawAllFood test
+	call drawAllFood
 	
 	call delay
 	
@@ -229,6 +239,56 @@ noCollide:
 	pop	ax
 	ret	0
 renderWorld ENDP
+
+; Reads keyboard buffer and acts (returns non-zero if loop should end, 0 otherwise)
+handleGameInput PROC NEAR
+	push	es
+
+	mov	ax, seg __keysActive
+	mov	es, ax
+
+	xor	ah, ah
+	mov	al, es:[__keysActive]
+	cmp	al, 0
+	jz	@done		; no key pressed
+
+	; handle keys
+	mov	al, es:[__keyboardState][SCANCODE_UP]	; test UP key
+	cmp	al, 0
+	jz @F	; jump next
+	; call some function to handle this key
+	mov	al, DIR_UP
+	mov [snake_direction], al
+@@:
+	mov	al, es:[__keyboardState][SCANCODE_DOWN]	; test DOWN key
+	cmp	al, 0
+	jz @F	; jump next
+	; call some function to handle this key
+	mov	al, DIR_DOWN
+	mov [snake_direction], al
+@@:
+	mov	al, es:[__keyboardState][SCANCODE_LEFT]	; test LEFT key
+	cmp	al, 0
+	jz @F	; jump next
+	; call some function to handle this key
+	mov	al, DIR_LEFT
+	mov [snake_direction], al
+@@:
+	mov	al, es:[__keyboardState][SCANCODE_RIGHT]	; test RIGHT key
+	cmp	al, 0
+	jz @F	; jump next
+	; call some function to handle this key
+	mov	al, DIR_RIGHT
+	mov [snake_direction], al
+@@:
+	
+	; finally, let's put the ESC key status as return value in AX
+	mov	al, es:[__keyboardState][SCANCODE_ESC]	; test ESC
+
+@done:
+	pop	es
+	ret 0
+handleGameInput ENDP
 
 ; Reads keyboard buffer and acts (returns non-zero if loop should end, 0 otherwise)
 handleInput PROC NEAR
@@ -563,6 +623,47 @@ drawFood PROC NEAR
 	ret 2
 drawFood ENDP
 
+drawAllFood PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push ax
+	push cx
+	push si
+	push ds
+	
+	cld
+	;segment
+	mov ax, @data
+	mov ds, ax
+	;offset
+	mov ax, offset food_mem
+	mov si, ax
+	;counter
+	mov cx, 0
+	mov cl, [food_nb]
+
+foodLoop:
+	lodsw ;ah : y-coord, al : x-coord !
+	mov bh, al
+	mov bl, ah
+	
+	push bx
+	call drawFood
+	inc si ;skip type byte
+	dec cx
+	jnz foodLoop
+	
+	pop ds
+	pop si
+	pop cx
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 0
+drawAllFood ENDP
+
 ;========================
 ;-------SNAKE GAME-------
 ;========================
@@ -646,20 +747,6 @@ nextHead PROC NEAR
 	jz left
 
 top:
-	;BUG :
-	;ax : 0000
-	;after dec al
-	;ax : 00FF
-	;after idiv
-	;ax : 0F0C ;255%20 = 15 (FF%14 = F) but should be (-1)%20 = 19
-	;***********
-	;ax : 0000
-	;after dec ax
-	;ax : FFFF
-	;after idiv
-	;ax : FF00 ;rest = -1
-	;***********
-	;solution ?
 	mov ah, 0
 	dec ax
 	jns positive
@@ -667,15 +754,6 @@ top:
 positive:
 	mov ah, bh ;saved x-coord
 	jmp return
-	
-	;mov ah, 0
-	;dec ax ;y-1 because moving to top
-	
-	;mov dl, BOARD_Y
-	;idiv dl ;AH : rest = modulo
-	;mov al, ah ;modified y-coord
-	;mov ah, bh ;saved x-coord
-	;jmp return
 	
 right:
 	inc ah ;x+1 because moving to right
@@ -910,6 +988,11 @@ notCollided: ;bx : new-food coord
 	mov al, 0 ;food type
 	mov [di+2], al
 	
+	;update food count
+	mov al, [food_nb]
+	inc al
+	mov [food_nb], al
+	
 	pop es
 	pop di
 	pop bx
@@ -919,6 +1002,84 @@ notCollided: ;bx : new-food coord
 	pop bp
 	ret 0
 newFood ENDP
+
+eatFood PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push ax
+	push bx
+	push cx
+	push di
+	push si
+	push ds
+	push es
+	
+	cld
+	;set segment
+	mov ax, @data
+	mov ds, ax
+	mov es, ax
+	;get snake-head coord
+	mov ax, offset snake_mem
+	add ax, [snake_head]
+	mov si, ax
+	lodsw ;mov ax, ds:[si]
+	mov bx, ax ;snake-coord
+	;set offset
+	mov ax, offset food_mem
+	mov si, ax
+	;counter
+	mov cx, 0
+	mov cl, [food_nb]
+	
+foodLoop:
+	lodsw
+	cmp ax, bx ;head-coord == food-coord ?
+	jz sameCoord
+	inc si ;skip type byte
+	dec cx ;update counter
+	jnz foodLoop
+	
+	;no food at snake-head.coord
+	jmp return
+	
+sameCoord:
+	lodsb ;AL : food type
+	mov bl, al
+	
+	;update food count
+	mov ax, 0
+	mov al, [food_nb]
+	dec al
+	mov [food_nb], al
+	;swapping
+	sub si, 3
+	mov cl, 3
+	mul cl ;AX : offset to last food
+	mov di, si ;offset to used food
+	mov si, offset food_mem
+	add si, ax ;offset to last food
+	rep movsb ;copy 3 bytes
+	
+	;TODO call proc depending on food type
+	;TEMP
+	call newFood
+	call grow
+	
+return:
+	pop es
+	pop ds
+	pop si
+	pop di
+	pop cx
+	pop bx
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 0
+eatFood ENDP
 
 ; _------------------------------- END OF CODE ---------------------------------
 END main
