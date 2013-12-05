@@ -18,7 +18,7 @@ include KEYB.INC
 SCREEN_X equ 320
 SCREEN_Y equ 200
 BOARD_X equ 32
-BOARD_Y equ 20
+BOARD_Y equ 19
 BOARD_SIZE equ BOARD_X * BOARD_Y
 
 DIR_UP equ 0
@@ -38,11 +38,26 @@ snake_mem dw BOARD_SIZE dup(?)
 snake_size dw 0 ;size of snake
 snake_direction db DIR_UP ;direction (0=UP, 1=RIGHT, 2=DOWN, 3=LEFT)
 snake_head dw 0 ;offset to head starting from snake_mem
+snake_speed db 15 ;snake-speed (0 slowest to 18 fastest)
 
 food_nb db 0 ;current nb of food-objects
 food_mem db 3*FOOD_MAX dup(?) ;array with food-objects
 
+score dw 0 ;the game-score
+
 WAIT_TIME dw 0
+
+draw_snake_head byte 10,10
+				byte 1,1,1,1,1,1,1,1,1,1
+				byte 1,1,1,1,1,1,1,1,1,1
+			   	byte 1,1,1,1,1,1,1,1,1,1
+				byte 1,1,1,1,1,1,1,1,1,1
+				byte 1,1,1,1,1,1,1,1,1,1
+				byte 1,1,1,1,1,1,1,1,1,1
+				byte 1,1,1,1,1,1,1,1,1,1
+				byte 1,1,1,1,1,1,1,1,1,1
+				byte 1,1,1,1,1,1,1,1,1,1
+				byte 1,1,1,1,1,1,1,1,1,1
 
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
@@ -82,9 +97,10 @@ main PROC NEAR
 	;first food
 	call newFood
 	call newFood
+	call newFood
 	
 @main_loop:	
-	;call	updateWorld	; this would contain the game code (like AI)
+	call	updateWorld	; this would contain the game code (like AI)
 
 	call	renderWorld	; draws the world
 	
@@ -185,50 +201,7 @@ renderWorld PROC NEAR
 	push 	di
 	call	clearScreenBuffer
 
-	; draw a random rectangle
-	call	rand
-	and		ax, 0ffh
-	;push	ax
-	call	rand
-	and		ax, 07fh
-	;push	ax
-	
-	;move test - OK
-	call move
-	;grow test - OK
-	;call grow
-	;collide test - OK
-	;call nextHead
-	;push ax ;coord to check
-	;mov ax, 1
-	;push ax ;check whole snake
-	;call collide
-	;cmp ax, 1 ;result true ?
-	;jnz noCollide
-	;mov al, [snake_direction]
-	;inc ax
-	;mov BYTE PTR [snake_direction], al
-noCollide:
-	;call 	drawRect
 	call drawSnake
-	;nextHead test - OK
-	;call nextHead
-	;push ax
-	;call drawHead
-	
-	;eatFood test
-	call eatFood
-	
-	;newFood test
-	;call newFood
-	;drawFood test - OK
-	;mov ax, offset food_mem
-	;mov di, ax
-	;mov ah, [di]
-	;mov al, [di+1]
-	;push ax
-	;call drawFood
-	;drawAllFood test
 	call drawAllFood
 	
 	call delay
@@ -239,6 +212,35 @@ noCollide:
 	pop	ax
 	ret	0
 renderWorld ENDP
+
+updateWorld PROC NEAR
+	push bp
+	mov bp, sp
+	
+	call move
+	call eatFood
+	mov ax, offset snake_mem
+	add ax, [snake_head]
+	mov di, ax
+	mov ah, [di]
+	mov al, [di+1]
+	push ax ;coord
+	mov ax, 3 ;skip first 3 parts
+	push ax
+	call collide
+	cmp ax, 0
+	jz continue
+	
+	; Exit to DOS
+	mov		ax, 4c00h	; exit to DOS function, return code 00h
+	int		21h			; call DOS
+	
+continue:
+	
+	mov sp, bp
+	pop bp
+	ret 0
+updateWorld ENDP
 
 ; Reads keyboard buffer and acts (returns non-zero if loop should end, 0 otherwise)
 handleGameInput PROC NEAR
@@ -256,12 +258,16 @@ handleGameInput PROC NEAR
 	mov	al, es:[__keyboardState][SCANCODE_UP]	; test UP key
 	cmp	al, 0
 	jz @F	; jump next
+	cmp [snake_direction], DIR_DOWN
+	jz @F	; jump next
 	; call some function to handle this key
 	mov	al, DIR_UP
 	mov [snake_direction], al
 @@:
 	mov	al, es:[__keyboardState][SCANCODE_DOWN]	; test DOWN key
 	cmp	al, 0
+	jz @F	; jump next
+	cmp [snake_direction], DIR_UP
 	jz @F	; jump next
 	; call some function to handle this key
 	mov	al, DIR_DOWN
@@ -270,12 +276,16 @@ handleGameInput PROC NEAR
 	mov	al, es:[__keyboardState][SCANCODE_LEFT]	; test LEFT key
 	cmp	al, 0
 	jz @F	; jump next
+	cmp [snake_direction], DIR_RIGHT
+	jz @F	; jump next
 	; call some function to handle this key
 	mov	al, DIR_LEFT
 	mov [snake_direction], al
 @@:
 	mov	al, es:[__keyboardState][SCANCODE_RIGHT]	; test RIGHT key
 	cmp	al, 0
+	jz @F	; jump next
+	cmp [snake_direction], DIR_LEFT
 	jz @F	; jump next
 	; call some function to handle this key
 	mov	al, DIR_RIGHT
@@ -290,135 +300,6 @@ handleGameInput PROC NEAR
 	ret 0
 handleGameInput ENDP
 
-; Reads keyboard buffer and acts (returns non-zero if loop should end, 0 otherwise)
-handleInput PROC NEAR
-	push	es
-
-	mov	ax, seg __keysActive
-	mov	es, ax
-
-	xor	ah, ah
-	mov	al, es:[__keysActive]
-	cmp	al, 0
-	jz	@done		; no key pressed
-
-	; handle keys
-	mov	al, es:[__keyboardState][SCANCODE_UP]	; test UP key
-	cmp	al, 0
-	jz @F	; jump next
-	; call some function to handle this key
-	mov	ax, SCREEN_X
-	sub [hardOffset], ax
-	sub [hardOffset], ax
-@@:
-	mov	al, es:[__keyboardState][SCANCODE_DOWN]	; test DOWN key
-	cmp	al, 0
-	jz @F	; jump next
-	; call some function to handle this key
-	mov	ax, SCREEN_X
-	add [hardOffset], ax
-	add [hardOffset], ax
-@@:
-	mov	al, es:[__keyboardState][SCANCODE_LEFT]	; test LEFT key
-	cmp	al, 0
-	jz @F	; jump next
-	; call some function to handle this key
-	dec [hardOffset]
-	dec [hardOffset]
-@@:
-	mov	al, es:[__keyboardState][SCANCODE_RIGHT]	; test RIGHT key
-	cmp	al, 0
-	jz @F	; jump next
-	; call some function to handle this key
-	inc [hardOffset]
-	inc [hardOffset]
-@@:
-	
-	; finally, let's put the ESC key status as return value in AX
-	mov	al, es:[__keyboardState][SCANCODE_ESC]	; test ESC
-
-@done:
-	pop	es
-	ret 0
-handleInput ENDP
-
-; Draw a rectangle at the center of the screen buffer.
-; W, H passed on stack.
-drawRect PROC NEAR
-	push	bp
-	mov	bp, sp
-	
-	push	ax
-	push	bx
-	push	cx
-	push	dx
-	push	di
-	push	es
-	
-	; set segment
-	mov	ax, seg screenBuffer
-	mov	es, ax
-	
-	; Calculate posX
-	mov	ax, [bp + 4][2]
-	neg	ax
-	add	ax, SCREEN_X
-	shr	ax, 1
-	mov	bx, ax		; posX is in BX now
-	
-	; Calculate posY
-	mov	ax, [bp + 4][0]
-	neg	ax
-	add	ax, SCREEN_Y
-	shr	ax, 1		; and posY is in AX
-	
-	; Calculate offset of top-left corner
-	mov	dx, SCREEN_X
-	mul	dx		; AX = posY * SCREEN_X
-	add	ax, bx		; AX now contains start offset of rectangle
-	add	ax, offset screenBuffer
-	add	ax, [hardOffset]
-	
-	; Draw upper horizontal line
-	mov	di, ax
-	mov	cx, [bp + 4][2]	; rect W
-	mov	al, 15	; color
-	cld
-	rep	stosb	; draw	
-	
-	; Draw right vertical line	
-	mov		cx, [bp + 4][0]	; rect H
-	dec	di
-@@:
-	mov	es:[di], al	; set pixel
-	add	di, SCREEN_X	; jump to next pixel (on next line)
-	loop	@B
-	
-	; Draw bottom horizontal line
-	mov	cx, [bp+4][2]	; rect W
-	std	; count backwards
-	rep	stosb	; draw
-	
-	; Draw left vertical line
-	mov	cx, [bp + 4][0]	; rect H
-	inc di
-@@:
-	mov	es:[di], al	; set pixel
-	sub	di, SCREEN_X	; jump to next pixel (on next line)
-	loop	@B
-
-	; We are done
-	pop	es
-	pop	di
-	pop	dx
-	pop	cx
-	pop	bx
-	pop	ax
-	; return
-	pop	bp
-	ret	4
-drawRect ENDP
-
 delay PROC NEAR
 	push bp
 	mov bp, sp
@@ -431,7 +312,11 @@ timer:
 	int 1ah
 	cmp dx, wait_time
 	jb timer
-	add dx, 3 ;1-18, where smaller is faster and 18 is close to 1 second
+	mov al, 18
+	mov ah, [snake_speed]
+	sub al, ah
+	mov ah, 0
+	add dx, ax ;1-18, where smaller is faster and 18 is close to 1 second
 	mov wait_time, dx
 	
 	pop dx
@@ -479,44 +364,77 @@ offsetForCoord PROC NEAR
 	ret 2
 offsetForCoord ENDP
 
+;draw array
+;stack : top - coord where array will be drawn
+;		 next - offset of array
+drawArray PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push ax
+	push bx
+	push cx
+	push si
+	push ds
+	push di
+	push es
+	
+	cld
+	;screenbuffer
+	mov ax, seg screenBuffer
+	mov es, ax
+	mov ax, [bp+4][0]
+	push ax
+	call offsetForCoord
+	add ax, offset screenBuffer ;offset where array will be drawn
+	mov di, ax
+	;array
+	mov ax, @data
+	mov ds, ax
+	mov ax, [bp+4][2]
+	mov si, ax
+	;array-width and array-height
+	lodsw
+	mov cx, 0
+	mov bh, ah ;width
+	mov bl, al ;height
+	
+arrayLoop:
+	mov cl, bh
+	rep movsb ;copy row
+	mov ax, SCREEN_X
+	mov cl, bh
+	sub ax, cx
+	add di, ax ;next row
+	dec bl
+	jnz arrayLoop
+	
+	pop es
+	pop di
+	pop ds
+	pop si
+	pop cx
+	pop bx
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 4
+drawArray ENDP
+
 ;draw a snake-head at given coord on stack
 drawHead PROC NEAR
 	push bp
 	mov	bp, sp
 	
 	push ax
-	push bx
-	push cx
-	push di
-	push es
 	
-	; set segment
-	mov	ax, seg screenBuffer
-	mov	es, ax
-	
-	mov bx, [bp+4][0]
-	push bx
-	call offsetForCoord
-	add	ax, offset screenBuffer
-	
-	mov di, ax
-	mov al, 1 ;color from palette
-	
-	;temp : make a filled square
-	mov bx, 10 ;(SCREEN_Y/BOARD_Y)
-@yLoop:
-	mov cx, 10 ;(SCREEN_X/BOARD_X)
-	rep stosb ;loop cx times the instruction mov es:[di], al
-	mov cx, SCREEN_X
-	sub cx, 10
-	add di, cx
-	dec bx
-	jnz @yLoop
-	
-	pop es
-	pop di
-	pop cx
-	pop bx
+	mov ax, offset draw_snake_head
+	push ax
+	mov ax, [bp+4][0]
+	push ax
+	call drawArray
+
 	pop ax
 	
 	mov sp, bp
@@ -867,7 +785,7 @@ grow PROC NEAR
 	ret 0
 grow ENDP
 
-;see if given coord is contained id body of snake
+;see if given coord is contained in body of snake
 ;stack : top = nb of bodyparts to be skipped from head
 ;              (0=check all including head, 1=check all except head...)
 ;        next = coord to check
@@ -891,6 +809,7 @@ collide PROC NEAR
 	;set offset
 	mov ax, 2
 	mov cx, [snake_size]
+	inc cx ;+1 to check tail because in bodyloop, decrease before compare
 	mul cx 
 	add ax, [snake_head] ;AX contains offset to tail
 	;modulo offset
@@ -1063,9 +982,12 @@ sameCoord:
 	rep movsb ;copy 3 bytes
 	
 	;TODO call proc depending on food type
-	;TEMP
-	call newFood
-	call grow
+	cmp bl, 0
+	jz normal
+	
+normal:
+	call normalFood
+	jmp return
 	
 return:
 	pop es
@@ -1080,6 +1002,25 @@ return:
 	pop bp
 	ret 0
 eatFood ENDP
+
+normalFood PROC NEAR
+	push bp
+	mov bp, sp
+	
+	call newFood
+	call grow
+	;update score
+	mov ax, 0
+	mov al, [snake_speed]
+	mov bl, 10
+	mul bl
+	add ax, [score]
+	mov [score], ax
+	
+	mov sp, bp
+	pop bp
+	ret 0
+normalFood ENDP
 
 ; _------------------------------- END OF CODE ---------------------------------
 END main
