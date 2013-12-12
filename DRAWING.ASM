@@ -28,12 +28,17 @@ DIR_LEFT equ 3
 
 FOOD_MAX equ 5
 
+a equ 3 ;background color
+z equ 0 ;black
 b equ 1 ;blue
 g equ 2 ;green
+q equ 3 ;cyan
 r equ 4 ;red
-o equ 6 ;orange
+m equ 5 ;magenta
+o equ 6 ;brown
+w equ 7 ;white
 y equ 14 ;yellow
-l equ 46 ;light green
+l equ 10 ;light green
 
 ; --- DATA SEGMENT -------------------------------------------------------------
 .DATA        ; data segment, variables
@@ -45,7 +50,7 @@ snake_mem dw BOARD_SIZE dup(?)
 snake_size dw 0 ;size of snake
 snake_direction db DIR_UP ;direction (0=UP, 1=RIGHT, 2=DOWN, 3=LEFT)
 snake_head dw 0 ;offset to head starting from snake_mem
-snake_speed db 15 ;snake-speed (0 slowest to 18 fastest)
+snake_speed db 16 ;snake-speed (0 slowest to 18 fastest)
 
 food_nb db 0 ;current nb of food-objects
 food_mem db 3*FOOD_MAX dup(?) ;array with food-objects
@@ -55,73 +60,142 @@ score dw 0 ;the game-score
 WAIT_TIME dw 0
 
 draw_snake_head_up byte 10,10
-				byte r,r,r,b,b,b,b,r,r,r
-				byte r,r,r,r,b,b,r,r,r,r
-			   	byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
+				byte a,a,g,a,r,r,a,g,a,a
+				byte a,g,g,a,r,r,a,g,g,a
+			   	byte g,g,l,g,r,r,g,l,g,g
+				byte g,l,l,l,g,g,l,l,l,g
+				byte g,b,b,l,l,l,l,b,b,g
+				byte g,b,b,l,l,l,l,b,b,g
+				byte a,g,l,l,l,l,l,l,g,a
+				byte a,a,g,l,l,l,l,g,a,a
+				byte a,g,l,l,l,l,l,l,g,a
+				byte a,a,g,g,g,g,g,g,a,a
 draw_snake_head_right byte 10,10
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-			   	byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,b
-				byte r,r,r,r,r,r,r,r,b,b
-				byte r,r,r,r,r,r,r,r,b,b
-				byte r,r,r,r,r,r,r,r,r,b
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
+				byte a,a,a,a,g,g,g,g,a,a
+				byte a,g,a,g,b,b,l,g,g,a
+			   	byte g,l,g,l,b,b,l,l,g,g
+				byte g,l,l,l,l,l,l,g,a,a
+				byte g,l,l,l,l,l,g,r,r,r
+				byte g,l,l,l,l,l,g,r,r,r
+				byte g,l,l,l,l,l,l,g,a,a
+				byte g,l,g,l,b,b,l,l,g,g
+				byte a,g,a,g,b,b,l,g,g,a
+				byte a,a,a,a,g,g,g,g,a,a
 draw_snake_head_down byte 10,10
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-			   	byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,b,b,r,r,r,r
-				byte r,r,r,b,b,b,b,r,r,r
+				byte a,a,g,g,g,g,g,g,a,a
+				byte a,g,l,l,l,l,l,l,g,a
+			   	byte a,a,g,l,l,l,l,g,a,a
+				byte a,g,l,l,l,l,l,l,g,a
+				byte g,b,b,l,l,l,l,b,b,g
+				byte g,b,b,l,l,l,l,b,b,g
+				byte g,l,l,l,g,g,l,l,l,g
+				byte g,g,l,g,r,r,g,l,g,g
+				byte a,g,g,a,r,r,a,g,g,a
+				byte a,a,g,a,r,r,a,g,a,a
 draw_snake_head_left byte 10,10
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-			   	byte r,r,r,r,r,r,r,r,r,r
-				byte b,r,r,r,r,r,r,r,r,r
-				byte b,b,r,r,r,r,r,r,r,r
-				byte b,b,r,r,r,r,r,r,r,r
-				byte b,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
-				byte r,r,r,r,r,r,r,r,r,r
+				byte a,a,g,g,g,g,a,a,a,a
+				byte a,g,g,l,b,b,g,a,g,a
+			   	byte g,g,l,l,b,b,l,g,l,g
+				byte a,a,g,l,l,l,l,l,l,g
+				byte r,r,r,g,l,l,l,l,l,g
+				byte r,r,r,g,l,l,l,l,l,g
+				byte a,a,g,l,l,l,l,l,l,g
+				byte g,g,l,l,b,b,l,g,l,g
+				byte a,g,g,l,b,b,g,a,g,a
+				byte a,a,g,g,g,g,a,a,a,a
 				
 draw_snake_body byte 10,10
-				byte b,b,b,b,b,b,b,b,b,b
-				byte b,b,b,b,b,b,b,b,b,b
-			   	byte b,b,b,b,b,b,b,b,b,b
-				byte b,b,b,b,b,b,b,b,b,b
-				byte b,b,b,b,b,b,b,b,b,b
-				byte b,b,b,b,b,b,b,b,b,b
-				byte b,b,b,b,b,b,b,b,b,b
-				byte b,b,b,b,b,b,b,b,b,b
-				byte b,b,b,b,b,b,b,b,b,b
-				byte b,b,b,b,b,b,b,b,b,b
+				byte a,a,g,g,g,g,g,g,a,a
+				byte a,g,g,g,g,g,g,g,g,a
+			   	byte g,g,g,l,l,l,l,g,g,g
+				byte g,g,l,l,l,l,l,l,g,g
+				byte g,g,l,l,l,l,l,l,g,g
+				byte g,g,l,l,l,l,l,l,g,g
+				byte g,g,l,l,l,l,l,l,g,g
+				byte g,g,g,l,l,l,l,g,g,g
+				byte a,g,g,g,g,g,g,g,g,a
+				byte a,a,g,g,g,g,g,g,a,a
 				
 draw_food_normal byte 10,10
-				 byte o,o,o,o,o,o,o,o,o,o
-				 byte o,o,o,o,o,o,o,o,o,o
-			   	 byte o,o,o,o,o,o,o,o,o,o
-				 byte o,o,o,o,o,o,o,o,o,o
-				 byte o,o,o,o,o,o,o,o,o,o
-				 byte o,o,o,o,o,o,o,o,o,o
-				 byte o,o,o,o,o,o,o,o,o,o
-				 byte o,o,o,o,o,o,o,o,o,o
-				 byte o,o,o,o,o,o,o,o,o,o
-				 byte o,o,o,o,o,o,o,o,o,o
+				byte o,o,o,o,o,o,o,o,o,o
+				byte o,o,o,o,o,o,o,o,o,o
+			   	byte o,o,o,o,o,o,o,o,o,o
+				byte o,o,o,o,o,o,o,o,o,o
+				byte o,o,o,o,o,o,o,o,o,o
+				byte o,o,o,o,o,o,o,o,o,o
+				byte o,o,o,o,o,o,o,o,o,o
+				byte o,o,o,o,o,o,o,o,o,o
+				byte o,o,o,o,o,o,o,o,o,o
+				byte o,o,o,o,o,o,o,o,o,o
+				
+draw_score byte 5,22
+				byte a,w,w,a,a,w,w,a,a,w,a,a,w,w,a,a,a,w,w,a,a,a
+				byte w,a,a,a,w,a,a,a,w,a,w,a,w,a,w,a,w,a,a,a,w,a
+				byte a,w,a,a,w,a,a,a,w,a,w,a,w,w,a,a,w,w,w,a,a,a
+				byte a,a,w,a,w,a,a,a,w,a,w,a,w,a,w,a,w,a,a,a,w,a
+				byte w,w,a,a,a,w,w,a,a,w,a,a,w,a,w,a,a,w,w,a,a,a
+draw_nb_0 byte 5, 3
+				byte a,w,a
+				byte w,a,w
+				byte w,a,w
+				byte w,a,w
+				byte a,w,a
+draw_nb_1 byte 5, 3
+				byte a,w,a
+				byte w,w,a
+				byte a,w,a
+				byte a,w,a
+				byte w,w,w
+draw_nb_2 byte 5, 3
+				byte w,w,a
+				byte a,a,w
+				byte a,w,a
+				byte w,a,a
+				byte w,w,w
+draw_nb_3 byte 5, 3
+				byte w,w,a
+				byte a,a,w
+				byte a,w,a
+				byte a,a,w
+				byte w,w,a
+draw_nb_4 byte 5, 3
+				byte w,a,a
+				byte w,a,w
+				byte w,w,w
+				byte a,a,w
+				byte a,a,w
+draw_nb_5 byte 5, 3
+				byte w,w,w
+				byte w,a,a
+				byte a,w,a
+				byte a,a,w
+				byte w,w,a
+draw_nb_6 byte 5, 3
+				byte a,w,w
+				byte w,a,a
+				byte w,w,a
+				byte w,a,w
+				byte a,w,a
+draw_nb_7 byte 5, 3
+				byte w,w,w
+				byte a,a,w
+				byte a,w,a
+				byte a,w,a
+				byte a,w,a
+draw_nb_8 byte 5, 3
+				byte a,w,a
+				byte w,a,w
+				byte a,w,a
+				byte w,a,w
+				byte a,w,a
+draw_nb_9 byte 5, 3
+				byte a,w,a
+				byte w,a,w
+				byte a,w,w
+				byte a,a,w
+				byte w,w,a
+
+				
 
 ; --- SCREEN BUFFER ------------------------------------------------------------
 .FARDATA?	; segment that contains the screenBuffer for mode 13h drawing
@@ -217,7 +291,9 @@ clearScreenBuffer PROC NEAR
 	mov		es, ax
 	mov		di, offset screenBuffer
 	mov		cx, 64000 / 2
-	xor		ax, ax
+	;xor		ax, ax
+	mov ah, a
+	mov al, a
 	rep		stosw
 	
 	pop	es
@@ -267,6 +343,8 @@ renderWorld PROC NEAR
 
 	call drawSnake
 	call drawAllFood
+	
+	call drawScore
 	
 	call delay
 	
@@ -430,7 +508,7 @@ offsetForCoord PROC NEAR
 offsetForCoord ENDP
 
 ;draw array
-;stack : top - coord where array will be drawn
+;stack : top - offset where array will be drawn
 ;		 next - offset of array
 drawArray PROC NEAR
 	push bp
@@ -449,8 +527,6 @@ drawArray PROC NEAR
 	mov ax, seg screenBuffer
 	mov es, ax
 	mov ax, [bp+4][0]
-	push ax
-	call offsetForCoord
 	add ax, offset screenBuffer ;offset where array will be drawn
 	mov di, ax
 	;array
@@ -487,6 +563,119 @@ arrayLoop:
 	ret 4
 drawArray ENDP
 
+drawScore PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push ax
+	
+	mov ax, offset draw_score
+	push ax
+	mov ah, 0
+	mov al, 19
+	push ax
+	call offsetForCoord
+	push ax
+	call drawArray
+	
+	add ax, 22 ;score-width
+	push ax
+	mov ax, [score] ;integer to draw
+	push ax
+	call drawInteger
+
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 0
+drawScore ENDP
+
+;on stack : TOP integer to draw
+;           NEXT offset in buffer
+drawInteger PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push ax
+	push bx
+	push cx
+	push dx
+	
+	mov cx, 0
+	mov bx, 10 ;div by 10
+	mov ax, [bp+4][0] ;integer
+	
+moduloLoop:
+	mov dx, 0
+	div bx
+	push dx
+	inc cx ;nb-length++
+	cmp ax, 0
+	jnz moduloLoop
+	
+	mov dx, [bp+4][2] ;buffer offset
+	
+drawNbLoop:
+	pop ax
+	cmp ax, 0
+	jnz @F
+	mov bx, offset draw_nb_0
+@@:
+	cmp ax, 1
+	jnz @F
+	mov bx, offset draw_nb_1
+@@:
+	cmp ax, 2
+	jnz @F
+	mov bx, offset draw_nb_2
+@@:
+	cmp ax, 3
+	jnz @F
+	mov bx, offset draw_nb_3
+@@:
+	cmp ax, 4
+	jnz @F
+	mov bx, offset draw_nb_4
+@@:
+	cmp ax, 5
+	jnz @F
+	mov bx, offset draw_nb_5
+@@:
+	cmp ax, 6
+	jnz @F
+	mov bx, offset draw_nb_6
+@@:
+	cmp ax, 7
+	jnz @F
+	mov bx, offset draw_nb_7
+@@:
+	cmp ax, 8
+	jnz @F
+	mov bx, offset draw_nb_8
+@@:
+	cmp ax, 9
+	jnz @F
+	mov bx, offset draw_nb_9
+@@:
+	push bx ;nb offset
+	mov ax, dx ;buffer offset
+	push ax
+	call drawArray
+	add dx, 4 ;nb-width + 1 space
+	dec cx ;nb-length--
+	jnz drawNbLoop
+	
+	pop dx
+	pop cx
+	pop bx
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 4
+drawInteger ENDP
+
 ;draw a snake-head at given coord on stack
 drawHead PROC NEAR
 	push bp
@@ -507,6 +696,8 @@ draw:
 	push ax
 	mov ax, [bp+4][0]
 	push ax
+	call offsetForCoord
+	push ax
 	call drawArray
 
 	pop ax
@@ -526,6 +717,8 @@ drawBody PROC NEAR
 	mov ax, offset draw_snake_body
 	push ax
 	mov ax, [bp+4][0]
+	push ax
+	call offsetForCoord
 	push ax
 	call drawArray
 
@@ -606,6 +799,8 @@ drawFood PROC NEAR
 	mov ax, offset draw_food_normal
 	push ax
 	mov ax, [bp+4][0]
+	push ax
+	call offsetForCoord
 	push ax
 	call drawArray
 
@@ -979,7 +1174,8 @@ collisionLoop:
 notCollided: ;bx : new-food coord
 	mov [di+1], bh ;x-coord
 	mov [di], bl ;y-coord
-	mov al, 0 ;food type
+	;mov al, 0 ;food type
+	call newFoodType ;food type
 	mov [di+2], al
 	
 	;update food count
@@ -996,6 +1192,42 @@ notCollided: ;bx : new-food coord
 	pop bp
 	ret 0
 newFood ENDP
+
+newFoodType PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push bx
+	
+	mov ax, 100
+	push ax
+	call randLimited
+	mov bx, ax
+
+	mov ax, 4 ;decrease food
+
+	cmp bx, 90
+	jae @F
+	mov ax, 3 ;increase food
+@@:	
+	cmp bx, 80
+	jae @F
+	mov ax, 2 ;slow food
+@@:	
+	cmp bx, 70
+	jae @F
+	mov ax, 1 ;speed food
+@@:
+	cmp bx, 60
+	jae @F
+	mov ax, 0 ;normal food
+@@:
+	pop bx
+	
+	mov sp, bp
+	pop bp
+	ret 0
+newFoodType ENDP
 
 eatFood PROC NEAR
 	push bp
@@ -1059,9 +1291,29 @@ sameCoord:
 	;TODO call proc depending on food type
 	cmp bl, 0
 	jz normal
+	cmp bl, 1
+	jz speed
+	cmp bl, 2
+	jz slow
+	cmp bl, 3
+	jz increase
+	cmp bl, 4
+	jz decrease
 	
 normal:
 	call normalFood
+	jmp return
+speed:
+	call speedFood
+	jmp return
+slow:
+	call slowFood
+	jmp return
+increase:
+	call incFood
+	jmp return
+decrease:
+	call decFood
 	jmp return
 	
 return:
@@ -1082,6 +1334,9 @@ normalFood PROC NEAR
 	push bp
 	mov bp, sp
 	
+	push ax
+	push bx
+	
 	call newFood
 	call grow
 	;update score
@@ -1092,10 +1347,140 @@ normalFood PROC NEAR
 	add ax, [score]
 	mov [score], ax
 	
+	pop bx
+	pop ax
+	
 	mov sp, bp
 	pop bp
 	ret 0
 normalFood ENDP
+
+speedFood PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push ax
+	push bx
+	
+	call newFood
+	call grow
+	;update score
+	mov ax, 0
+	mov al, [snake_speed]
+	mov bl, 10
+	mul bl
+	add ax, [score]
+	mov [score], ax
+	;update speed
+	mov ax, 0
+	mov al, [snake_speed]
+	cmp ax, 18
+	jz return
+	inc al
+	mov [snake_speed], al
+	
+return:
+
+	pop bx
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 0
+speedFood ENDP
+
+slowFood PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push ax
+	push bx
+	
+	call newFood
+	call grow
+	;update score
+	mov ax, 0
+	mov al, [snake_speed]
+	mov bl, 10
+	mul bl
+	add ax, [score]
+	mov [score], ax
+	;update speed
+	mov ax, 0
+	mov al, [snake_speed]
+	cmp ax, 0
+	jz return
+	dec al
+	mov [snake_speed], al
+	
+return:
+
+	pop bx
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 0
+slowFood ENDP
+
+incFood PROC
+	push bp
+	mov bp, sp
+	
+	push ax
+	push bx
+	
+	call newFood
+	mov al, [food_nb]
+	cmp al, FOOD_MAX
+	jz @F
+	call newFood
+@@:
+	call grow
+	;update score
+	mov ax, 0
+	mov al, [snake_speed]
+	mov bl, 10
+	mul bl
+	add ax, [score]
+	mov [score], ax
+	
+	pop bx
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 0
+incFood ENDP
+
+decFood PROC
+	push bp
+	mov bp, sp
+	
+	push ax
+	push bx
+	
+	mov al, [food_nb]
+	cmp al, 1
+	jnz @F
+	call newFood
+@@:
+	call grow
+	;update score
+	mov ax, 0
+	mov al, [snake_speed]
+	mov bl, 10
+	mul bl
+	add ax, [score]
+	mov [score], ax
+	
+	pop bx
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 0
+decFood ENDP
 
 ; _------------------------------- END OF CODE ---------------------------------
 END main
