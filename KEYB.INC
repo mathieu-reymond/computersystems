@@ -7,6 +7,8 @@
 externdef installKeyboardHandler:FAR, uninstallKeyboardHandler:FAR, keyboardHandler:FAR
 externdef __keyboardState:BYTE, __rawScanCode:BYTE, __keysActive:BYTE
 
+; --- MACROS AND CONSTANTS -----------------------------------------------------
+
 ; Scancodes
 ; for more codes, see http://www.ee.bgu.ac.il/~microlab/MicroLab/Labs/ScanCodes.htm
 SCANCODE_ESC	equ	01h
@@ -28,6 +30,3 @@ SCANCODE_LEFT	equ	4bh
 SCANCODE_RIGHT	equ	4dh
 SCANCODE_ENTER  equ 1ch
 SCANCODE_SPACE  equ 39h
-
-; --- MACROS AND CONSTANTS -----------------------------------------------------
-
