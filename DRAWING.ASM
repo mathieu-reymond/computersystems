@@ -27,6 +27,11 @@ DIR_DOWN equ 2
 DIR_LEFT equ 3
 
 FOOD_MAX equ 5
+FOOD_NORMAL equ 0
+FOOD_SPEED equ 1
+FOOD_SLOW equ 2
+FOOD_INC equ 3
+FOOD_DEC equ 4
 
 a equ 3 ;background color
 z equ 0 ;black
@@ -36,7 +41,9 @@ q equ 3 ;cyan
 r equ 4 ;red
 m equ 5 ;magenta
 o equ 6 ;brown
-w equ 7 ;white
+w equ 15 ;white
+h equ 8 ;gray
+p equ 13 ;light magenta
 y equ 14 ;yellow
 l equ 10 ;light green
 
@@ -117,16 +124,74 @@ draw_snake_body byte 10,10
 				byte a,a,g,g,g,g,g,g,a,a
 				
 draw_food_normal byte 10,10
-				byte o,o,o,o,o,o,o,o,o,o
-				byte o,o,o,o,o,o,o,o,o,o
-			   	byte o,o,o,o,o,o,o,o,o,o
-				byte o,o,o,o,o,o,o,o,o,o
-				byte o,o,o,o,o,o,o,o,o,o
-				byte o,o,o,o,o,o,o,o,o,o
-				byte o,o,o,o,o,o,o,o,o,o
-				byte o,o,o,o,o,o,o,o,o,o
-				byte o,o,o,o,o,o,o,o,o,o
-				byte o,o,o,o,o,o,o,o,o,o
+				byte a,z,a,a,a,a,a,a,z,a
+				byte a,z,a,a,a,a,a,a,z,a
+			   	byte a,a,z,a,a,a,a,z,a,a
+				byte z,z,a,z,z,z,z,a,z,z
+				byte a,a,z,r,z,z,r,z,a,a
+				byte z,z,z,z,z,z,z,z,z,z
+				byte a,a,a,z,z,z,z,a,a,a
+				byte a,a,z,a,a,a,a,z,a,a
+				byte a,z,a,a,a,a,a,a,z,a
+				byte a,z,a,a,a,a,a,a,z,a
+draw_food_speed byte 10,10
+				byte a,a,a,a,a,a,a,a,a,a
+				byte a,a,a,a,a,a,a,a,a,a
+			   	byte a,a,a,a,a,a,w,a,a,a
+				byte a,a,o,o,a,w,w,a,w,a
+				byte a,a,o,y,o,w,a,w,w,a
+				byte a,a,o,o,y,o,w,w,a,a
+				byte a,a,a,o,o,y,o,a,a,a
+				byte a,a,a,a,o,o,o,a,a,a
+				byte a,a,a,a,a,a,a,z,a,a
+				byte a,a,a,a,a,a,a,a,a,a
+draw_food_slow byte 10,10
+				byte a,a,a,a,a,a,a,a,a,a
+			   	byte a,a,a,a,a,o,o,o,a,a
+				byte h,h,a,a,o,y,y,o,o,a
+				byte a,h,h,o,y,o,y,o,y,o
+				byte a,h,h,o,y,o,o,o,y,o
+				byte a,h,h,o,o,y,y,y,o,o
+				byte a,a,h,h,o,o,o,o,o,a
+				byte a,a,a,h,h,h,h,h,h,a
+				byte a,a,a,a,h,h,h,h,h,h
+				byte a,a,a,a,a,a,a,a,a,a
+draw_food_inc byte 10,10
+				byte a,a,a,a,a,a,a,a,a,a
+				byte m,a,m,m,m,m,m,a,m,a
+				byte m,m,p,p,p,p,p,m,m,a
+				byte m,m,z,z,p,z,z,m,m,a
+				byte a,m,p,m,m,m,p,m,a,a
+				byte a,m,m,r,m,r,m,m,a,a
+				byte a,m,p,m,m,m,p,m,a,a
+				byte a,a,m,p,p,p,m,a,a,a
+				byte a,a,a,m,m,m,a,a,a,a
+				byte a,a,a,a,a,a,a,a,a,a
+draw_food_dec byte 10,10
+				byte a,a,a,a,a,a,a,a,a,a
+				byte a,b,a,a,a,a,a,a,b,a
+				byte b,w,b,a,a,a,a,b,w,b
+				byte b,p,w,b,a,a,b,w,p,b
+				byte b,w,p,b,o,o,b,p,w,b
+				byte a,b,b,w,b,b,w,b,b,a
+				byte a,a,b,w,b,b,w,b,a,a
+				byte a,b,p,b,a,a,b,p,b,a
+				byte a,b,b,a,a,a,a,b,b,a
+				byte a,a,a,a,a,a,a,a,a,a
+				
+draw_game_over byte 5, 35
+				byte a,w,w,a,a,w,a,a,w,a,w,a,a,w,w,a,a,a,a,a,a,w,a,a,w,a,w,a,a,w,w,a,w,w,a
+				byte w,a,a,a,w,a,w,a,w,w,w,a,w,a,a,a,a,a,a,a,w,a,w,a,w,a,w,a,w,a,a,a,w,a,w
+				byte w,a,w,a,w,w,w,a,w,a,w,a,w,w,w,a,a,a,a,a,w,a,w,a,w,a,w,a,w,w,w,a,w,w,a
+				byte w,a,w,a,w,a,w,a,w,a,w,a,w,a,a,a,a,a,a,a,w,a,w,a,w,a,w,a,w,a,a,a,w,a,w
+				byte a,w,w,a,w,a,w,a,w,a,w,a,a,w,w,a,a,a,a,a,a,w,a,a,a,w,a,a,a,w,w,a,w,a,w
+
+draw_main_menu byte 5, 19
+				byte a,w,w,a,w,w,a,a,a,w,a,a,w,a,a,a,a,w,w
+				byte w,a,a,a,w,a,w,a,w,a,w,a,w,a,w,a,w,a,a
+				byte a,w,a,a,w,a,w,a,w,w,w,a,w,w,a,a,w,w,w
+				byte a,a,w,a,w,a,w,a,w,a,w,a,w,a,w,a,w,a,a
+				byte w,w,a,a,w,a,w,a,w,a,w,a,w,a,w,a,a,w,w
 				
 draw_score byte 5,22
 				byte a,w,w,a,a,w,w,a,a,w,a,a,w,w,a,a,a,w,w,a,a,a
@@ -232,19 +297,38 @@ main PROC NEAR
 	call	setVideoMode
 	mov		[oldVideoMode], al
 	
+mainMenu:
+	call drawMainMenu
+	call updateScreen
+	call handleMainMenuInput
+	cmp al, 0 ;play
+	jz mainMenu
+	
+	
 	;first food
-	call newFood
-	call newFood
 	call newFood
 	
 @main_loop:	
 	call	updateWorld	; this would contain the game code (like AI)
+	cmp al, 0 ;collision ?
+	jnz gameOver
 
 	call	renderWorld	; draws the world
 	
 	call	handleGameInput	; handle user input
 	cmp		al, 0
-	jz		@main_loop
+	jnz		gameOver
+	jmp @main_loop
+	
+gameOver:
+	call drawGameOver
+	call updateScreen
+	call handleGameOverInput
+	cmp al, 0
+	jnz quit
+	jmp gameOver
+
+quit:
 	
 	; Restore original keyboard handler
 	call	uninstallKeyboardHandler
@@ -371,19 +455,53 @@ updateWorld PROC NEAR
 	mov ax, 3 ;skip first 3 parts
 	push ax
 	call collide
-	cmp ax, 0
-	jz continue
 	
-	; Exit to DOS
-	mov		ax, 4c00h	; exit to DOS function, return code 00h
-	int		21h			; call DOS
-	
-continue:
+	;return ax(0 = continue)
 	
 	mov sp, bp
 	pop bp
 	ret 0
 updateWorld ENDP
+
+; Reads keyboard buffer and acts (returns non-zero if loop should end, 0 otherwise)
+handleMainMenuInput PROC NEAR
+	push	es
+
+	mov	ax, seg __keysActive
+	mov	es, ax
+
+	xor	ah, ah
+	mov	al, es:[__keysActive]
+	cmp	al, 0
+	jz	@done		; no key pressed
+	
+	; finally, let's put the ESC key status as return value in AX
+	mov	al, es:[__keyboardState][SCANCODE_SPACE]	; test ESC
+
+@done:
+	pop	es
+	ret 0
+handleMainMenuInput ENDP
+
+; Reads keyboard buffer and acts (returns non-zero if loop should end, 0 otherwise)
+handleGameOverInput PROC NEAR
+	push	es
+
+	mov	ax, seg __keysActive
+	mov	es, ax
+
+	xor	ah, ah
+	mov	al, es:[__keysActive]
+	cmp	al, 0
+	jz	@done		; no key pressed
+	
+	; finally, let's put the ESC key status as return value in AX
+	mov	al, es:[__keyboardState][SCANCODE_ENTER]	; test ESC
+
+@done:
+	pop	es
+	ret 0
+handleGameOverInput ENDP
 
 ; Reads keyboard buffer and acts (returns non-zero if loop should end, 0 otherwise)
 handleGameInput PROC NEAR
@@ -562,6 +680,58 @@ arrayLoop:
 	pop bp
 	ret 4
 drawArray ENDP
+
+drawMainMenu PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push ax
+	
+	;clear screen
+	call clearScreenBuffer
+	;draw main menu
+	mov ax, offset draw_main_menu
+	push ax
+	mov ah, 5
+	mov al, 10
+	push ax
+	call offsetForCoord
+	push ax
+	call drawArray
+	
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 0
+drawMainMenu ENDP
+
+drawGameOver PROC NEAR
+	push bp
+	mov bp, sp
+	
+	push ax
+	
+	;clear screen
+	call clearScreenBuffer
+	;draw "game over"
+	mov ax, offset draw_game_over
+	push ax
+	mov ah, 5
+	mov al, 10
+	push ax
+	call offsetForCoord
+	push ax
+	call drawArray
+	;draw score
+	call drawScore
+	
+	pop ax
+	
+	mov sp, bp
+	pop bp
+	ret 0
+drawGameOver ENDP
 
 drawScore PROC NEAR
 	push bp
@@ -789,16 +959,39 @@ return:
 	ret 0
 drawSnake ENDP
 
-;draw a food-object at given coord on stack
+;draw a food-object
+;stack : TOP food type
+;	     NEXT given coord
 drawFood PROC NEAR
 	push bp
 	mov	bp, sp
 	
 	push ax
 	
+	mov bx, [bp+4][0] ;bl : food type
+	
+	cmp bl, FOOD_NORMAL
+	jnz @F
 	mov ax, offset draw_food_normal
+@@:
+	cmp bl, FOOD_SPEED
+	jnz @F
+	mov ax, offset draw_food_speed
+@@:
+	cmp bl, FOOD_SLOW
+	jnz @F
+	mov ax, offset draw_food_slow
+@@:
+	cmp bl, FOOD_INC
+	jnz @F
+	mov ax, offset draw_food_inc
+@@:
+	cmp bl, FOOD_DEC
+	jnz @F
+	mov ax, offset draw_food_dec
+@@:
 	push ax
-	mov ax, [bp+4][0]
+	mov ax, [bp+4][2] ;coord
 	push ax
 	call offsetForCoord
 	push ax
@@ -808,7 +1001,7 @@ drawFood PROC NEAR
 	
 	mov sp, bp
 	pop bp
-	ret 2
+	ret 4
 drawFood ENDP
 
 drawAllFood PROC NEAR
@@ -834,9 +1027,11 @@ drawAllFood PROC NEAR
 foodLoop:
 	lodsw
 	
-	push ax
+	push ax ;coord
+	lodsb 
+	push ax ;type byte (al)
 	call drawFood
-	inc si ;skip type byte
+	;inc si ;skip type byte
 	dec cx
 	jnz foodLoop
 	
@@ -1204,23 +1399,23 @@ newFoodType PROC NEAR
 	call randLimited
 	mov bx, ax
 
-	mov ax, 4 ;decrease food
+	mov ax, FOOD_DEC ;decrease food
 
 	cmp bx, 90
 	jae @F
-	mov ax, 3 ;increase food
+	mov ax, FOOD_INC ;increase food
 @@:	
 	cmp bx, 80
 	jae @F
-	mov ax, 2 ;slow food
+	mov ax, FOOD_SLOW ;slow food
 @@:	
 	cmp bx, 70
 	jae @F
-	mov ax, 1 ;speed food
+	mov ax, FOOD_SPEED ;speed food
 @@:
 	cmp bx, 60
 	jae @F
-	mov ax, 0 ;normal food
+	mov ax, FOOD_NORMAL ;normal food
 @@:
 	pop bx
 	
@@ -1289,15 +1484,15 @@ sameCoord:
 	rep movsb ;copy 3 bytes
 	
 	;TODO call proc depending on food type
-	cmp bl, 0
+	cmp bl, FOOD_NORMAL
 	jz normal
-	cmp bl, 1
+	cmp bl, FOOD_SPEED
 	jz speed
-	cmp bl, 2
+	cmp bl, FOOD_SLOW
 	jz slow
-	cmp bl, 3
+	cmp bl, FOOD_INC
 	jz increase
-	cmp bl, 4
+	cmp bl, FOOD_DEC
 	jz decrease
 	
 normal:
